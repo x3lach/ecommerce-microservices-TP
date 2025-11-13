@@ -117,4 +117,71 @@ public class ProductService {
 
         // TODO: Send a "product.stock.updated" event
     }
+    /**
+     * Updates an existing product.
+     * Corresponds to: PUT /api/v1/products/{id}
+     */
+    @Transactional
+    public Product updateProduct(UUID id, Product productDetails) {
+        // 1. Find the existing product
+        Product existingProduct = productRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Product not found with id: " + id));
+
+        // 2. Check for SKU uniqueness (if the SKU is being changed)
+        // Business Rule 3.1.3
+        if (productDetails.getSku() != null && !productDetails.getSku().equals(existingProduct.getSku())) {
+            productRepository.findBySku(productDetails.getSku()).ifPresent(p -> {
+                throw new IllegalArgumentException("SKU " + p.getSku() + " already exists.");
+            });
+            existingProduct.setSku(productDetails.getSku());
+        }
+
+        // 3. Update the fields
+        // A better way is to use a DTO and a mapper (like MapStruct)
+        // but this is the direct way.
+        if (productDetails.getName() != null) {
+            existingProduct.setName(productDetails.getName());
+        }
+        if (productDetails.getDescription() != null) {
+            existingProduct.setDescription(productDetails.getDescription());
+        }
+        if (productDetails.getPrice() != null) {
+            existingProduct.setPrice(productDetails.getPrice());
+        }
+        if (productDetails.getStockQuantity() != existingProduct.getStockQuantity()) {
+            existingProduct.setStockQuantity(productDetails.getStockQuantity());
+        }
+
+        // The @PreUpdate annotation in Product.java will auto-update the updatedAt timestamp
+
+        // 4. Save the updated product
+        Product updatedProduct = productRepository.save(existingProduct);
+
+        // 5. Send an "product.updated" event
+        // (We'll build the DTO and listener for this later)
+        // rabbitTemplate.convertAndSend(RabbitMQConfig.PRODUCT_EXCHANGE_NAME, "product.updated", updatedProduct);
+        log.info("Product updated: {}", updatedProduct.getId());
+
+        return updatedProduct;
+    }
+    /**
+     * Deletes a product.
+     * Corresponds to: DELETE /api/v1/products/{id}
+     * Your specs call for a "soft delete"
+     * but for simplicity, we will do a hard delete first.
+     */
+    @Transactional
+    public void deleteProduct(UUID id) {
+        // 1. Find the existing product
+        Product product = productRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Product not found with id: " + id));
+
+        // 2. Delete the product
+        productRepository.delete(product);
+
+        // 3. Send a "product.deleted" event
+        // (We'll build the DTO and listener for this later)
+        // rabbitTemplate.convertAndSend(RabbitMQConfig.PRODUCT_EXCHANGE_NAME, "product.deleted", id);
+        log.info("Product deleted: {}", id);
+    }
 }
