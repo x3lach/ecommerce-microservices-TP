@@ -1,0 +1,40 @@
+version: '3.8'
+
+services:
+  # RabbitMQ: For asynchronous messages
+  # Specs: Section 2.2, "Message Broker"
+  rabbitmq:
+    image: rabbitmq:3.12-management
+    container_name: rabbitmq
+    ports:
+      - "5672:5672"   # AMQP protocol port
+      - "15672:15672"  # Management UI
+    networks:
+      - ecommerce-net
+
+  # Elasticsearch: For Search-Service
+  # Specs: Section 2.2, "Bases de Données"
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.5.3
+    container_name: elasticsearch
+    environment:
+      - "discovery.type=single-node"
+      - "xpack.security.enabled=false"  # Disable security for dev
+    ports:
+      - "9200:9200"
+    networks:
+      - ecommerce-net
+
+  # Redis: For Caching
+  # Specs: Section 2.2, "Cache"
+  redis:
+    image: redis:7-alpine
+    container_name: redis
+    ports:
+      - "6379:6379"
+    networks:
+      - ecommerce-net
+
+networks:
+  ecommerce-net:
+    driver: bridge
