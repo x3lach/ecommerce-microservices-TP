@@ -25,12 +25,22 @@ public class ProductService {
     }
 
     /**
-     * Gets all products (paginated in the future).
+     * Gets all products.
      * Corresponds to: GET /api/v1/products
      */
     @Transactional(readOnly = true)
     public List<Product> getAllProducts() {
         return productRepository.findAll();
+    }
+
+    /**
+     * Gets all products (paginated in the future).
+     * Corresponds to: GET /api/v1/products
+     */
+    @Transactional(readOnly = true)
+    public Product getProductById(UUID id) {
+        return productRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Product not found with id: " + id)); // We'll make this a proper 404 later
     }
 
     /**

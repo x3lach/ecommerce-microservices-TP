@@ -7,6 +7,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/products") // Base path from specs
@@ -38,5 +39,15 @@ public class ProductController {
         // and handle validation
         Product createdProduct = productService.createProduct(product);
         return ResponseEntity.status(HttpStatus.CREATED).body(createdProduct);
+    }
+
+    /**
+     * Endpoint to get a single product by its ID
+     * GET /products/{id}
+     */
+    @GetMapping("/{id}")
+    public ResponseEntity<Product> getProductById(@PathVariable UUID id) {
+        Product product = productService.getProductById(id);
+        return ResponseEntity.ok(product);
     }
 }
