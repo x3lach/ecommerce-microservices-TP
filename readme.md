@@ -6,7 +6,7 @@ This is a summary of all the API endpoints currently available in the applicatio
 
 ## 📦 Catalogue-Service (Product Management)
 
-This service handles the creation and reading of products.
+This service handles the complete management of products.
 
 ### 1. Create a New Product
 
@@ -36,6 +36,27 @@ This service handles the creation and reading of products.
 * **Description:** Retrieves a single product by its unique ID. This is used internally by the `commande-service`.
 * **Example:**
     * `GET http://localhost:8081/api/v1/products/b7d5f22a-a8e7-4892-97a9-603a8ac8f87d`
+
+### 4. Update an Existing Product
+
+* **Endpoint:** `PUT /api/v1/products/{id}`
+* **Description:** Updates the details of an existing product. You only need to send the fields you want to change.
+* **Example:**
+    * **URL:** `http://localhost:8081/api/v1/products/b7d5f22a-a8e7-4892-97a9-603a8ac8f87d`
+    * **Body (JSON):**
+        ```json
+        {
+          "name": "The NEW 4th Product Name",
+          "price": 55.99
+        }
+        ```
+
+### 5. Delete a Product
+
+* **Endpoint:** `DELETE /api/v1/products/{id}`
+* **Description:** Deletes a product from the database. (Note: This will also trigger an event to remove it from the search index).
+* **Example:**
+    * `DELETE http://localhost:8081/api/v1/products/b7d5f22a-a8e7-4892-97a9-603a8ac8f87d`
 
 ---
 
