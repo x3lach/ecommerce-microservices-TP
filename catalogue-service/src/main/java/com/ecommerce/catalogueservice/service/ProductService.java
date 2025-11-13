@@ -4,6 +4,8 @@ import com.ecommerce.catalogueservice.config.RabbitMQConfig; // Import config
 import com.ecommerce.catalogueservice.dto.ProductCreatedEvent; // Import DTO
 import com.ecommerce.catalogueservice.model.Product;
 import com.ecommerce.catalogueservice.repository.ProductRepository;
+import org.slf4j.Logger; // <-- IMPORT ADDED
+import org.slf4j.LoggerFactory; // <-- IMPORT ADDED
 import org.springframework.amqp.rabbit.core.RabbitTemplate; // Import Rabbit
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -14,6 +16,8 @@ import java.util.UUID; // Make sure this is imported
 
 @Service
 public class ProductService {
+
+    private static final Logger log = LoggerFactory.getLogger(ProductService.class); // <-- FIX ADDED HERE
 
     private final ProductRepository productRepository;
     private final RabbitTemplate rabbitTemplate; // For sending RabbitMQ messages
@@ -34,8 +38,8 @@ public class ProductService {
     }
 
     /**
-     * Gets all products (paginated in the future).
-     * Corresponds to: GET /api/v1/products
+     * Gets a single product by its ID.
+     * Corresponds to: GET /products/{id}
      */
     @Transactional(readOnly = true)
     public Product getProductById(UUID id) {
@@ -77,14 +81,40 @@ public class ProductService {
         );
 
         // Send the event to the RabbitMQ exchange with the correct routing key
-        System.out.println("Sending product.created event for SKU: " + event.sku()); // For debugging
+        log.info("Sending product.created event for SKU: {}", event.sku()); // Now this will work
         rabbitTemplate.convertAndSend(
-                RabbitMQConfig.EXCHANGE_NAME,
+                RabbitMQConfig.PRODUCT_EXCHANGE_NAME, // Using the correct constant from your config
                 RabbitMQConfig.ROUTING_KEY_PRODUCT_CREATED,
                 event
         );
         // --- END NEW PART ---
 
         return savedProduct; // Return the saved product to the controller
+    }
+
+    /**
+     * Decreases the stock for a given product.
+     * This is called by the RabbitMQ listener.
+     */
+    @Transactional
+    public void decreaseStock(UUID productId, int quantityToDecrease) {
+        log.info("Attempting to decrease stock for product: {} by quantity: {}", productId, quantityToDecrease);
+
+        Product product = productRepository.findById(productId)
+                .orElseThrow(() -> new RuntimeException("Product not found: " + productId));
+
+        int newStock = product.getStockQuantity() - quantityToDecrease;
+        if (newStock < 0) {
+            // This should not happen if stock was validated at checkout,
+            // but it's a good safety check.
+            log.warn("Stock for product {} went negative. Setting to 0.", productId);
+            newStock = 0;
+        }
+
+        product.setStockQuantity(newStock);
+        productRepository.save(product);
+        log.info("Successfully updated stock for product: {}. New stock: {}", productId, newStock);
+
+        // TODO: Send a "product.stock.updated" event
     }
 }
