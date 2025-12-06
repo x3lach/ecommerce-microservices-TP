@@ -33,6 +33,13 @@ public class ProductEventListener {
         doc.setDescription(event.description());
         doc.setPrice(event.price());
 
+        // --- ADD THIS ---
+        // We will add real category/brand data to the event later
+        // For now, we set them as null to match the new model
+        doc.setCategory(null);
+        doc.setBrand(null);
+        // --- END ADD ---
+
         // Save it to Elasticsearch
         productSearchRepository.save(doc);
 

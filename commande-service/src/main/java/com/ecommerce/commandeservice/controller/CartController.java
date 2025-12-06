@@ -14,10 +14,6 @@ public class CartController {
 
     private final CartService cartService;
 
-    // A hardcoded User ID for testing.
-    // In a real app, this would come from the JWT token.
-    private static final UUID TEST_USER_ID = UUID.fromString("123e4567-e89b-12d3-a456-426614174000");
-
     public CartController(CartService cartService) {
         this.cartService = cartService;
     }
@@ -26,8 +22,8 @@ public class CartController {
      * Corresponds to GET /api/v1/cart
      */
     @GetMapping
-    public ResponseEntity<Cart> getMyCart() {
-        Cart cart = cartService.getCartByUserId(TEST_USER_ID);
+    public ResponseEntity<Cart> getMyCart(@RequestHeader("X-User-Id") String userId) {
+        Cart cart = cartService.getCartByUserId(UUID.fromString(userId));
         return ResponseEntity.ok(cart);
     }
 
@@ -35,8 +31,8 @@ public class CartController {
      * Corresponds to POST /api/v1/cart/items
      */
     @PostMapping("/items")
-    public ResponseEntity<Cart> addItemToMyCart(@RequestBody AddItemRequest itemRequest) {
-        Cart cart = cartService.addItemToCart(TEST_USER_ID, itemRequest);
+    public ResponseEntity<Cart> addItemToMyCart(@RequestHeader("X-User-Id") String userId, @RequestBody AddItemRequest itemRequest) {
+        Cart cart = cartService.addItemToCart(UUID.fromString(userId), itemRequest);
         return ResponseEntity.ok(cart);
     }
 }

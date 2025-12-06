@@ -6,6 +6,7 @@ import com.ecommerce.commandeservice.service.OrderService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -17,9 +18,6 @@ public class OrderController {
 
     private final OrderService orderService;
 
-    // A hardcoded User ID for testing.
-    private static final UUID TEST_USER_ID = UUID.fromString("123e4567-e89b-12d3-a456-426614174000");
-
     public OrderController(OrderService orderService) {
         this.orderService = orderService;
     }
@@ -29,8 +27,8 @@ public class OrderController {
      * Creates a new order from the user's current cart.
      */
     @PostMapping
-    public ResponseEntity<Order> createOrder() {
-        Order order = orderService.createOrder(TEST_USER_ID);
+    public ResponseEntity<Order> createOrder(@RequestHeader("X-User-Id") String userId) {
+        Order order = orderService.createOrder(UUID.fromString(userId));
         return ResponseEntity.status(HttpStatus.CREATED).body(order);
     }
 }

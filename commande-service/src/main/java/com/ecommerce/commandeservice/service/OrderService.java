@@ -90,8 +90,8 @@ public class OrderService {
         order.setTotalAmount(totalAmount);
 
         OrderAddress address = new OrderAddress();
-        address.setFullName("Test User");
-        address.setAddressLine1("123 Main St");
+        address.setFullName("Areski Ilias");
+        address.setAddressLine1("Chi blasa o safi");
         address.setCity("Casablanca");
         address.setPostalCode("20000");
         address.setCountry("Morocco");

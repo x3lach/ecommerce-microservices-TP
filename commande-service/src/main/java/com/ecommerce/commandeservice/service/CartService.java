@@ -6,6 +6,8 @@ import com.ecommerce.commandeservice.dto.ProductResponse;
 import com.ecommerce.commandeservice.model.Cart;
 import com.ecommerce.commandeservice.model.CartItem;
 import com.ecommerce.commandeservice.repository.CartRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.RestTemplate;
@@ -18,6 +20,7 @@ import java.util.UUID;
 @Service
 public class CartService {
 
+    private static final Logger log = LoggerFactory.getLogger(CartService.class);
     private final CartRepository cartRepository;
     private final RestTemplate restTemplate;
 
@@ -52,7 +55,8 @@ public class CartService {
         try {
             product = restTemplate.getForObject(catalogueUrl, ProductResponse.class);
         } catch (Exception e) {
-            throw new IllegalArgumentException("Product not found: " + itemRequest.getProductId());
+            log.error("Error while calling catalogue service for product {}", itemRequest.getProductId(), e);
+            throw new IllegalArgumentException("Error while calling catalogue service for product " + itemRequest.getProductId());
         }
 
         if (product == null) {
