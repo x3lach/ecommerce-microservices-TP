@@ -22,6 +22,8 @@ public class JwtUtil {
     public String generateToken(User user) {
         Map<String, Object> claims = new HashMap<>();
         claims.put("role", user.getRole()); // We add the role to the passport
+        claims.put("email", user.getEmail());
+        claims.put("fullName", user.getFullName());
         return createToken(claims, user.getId().toString());
     }
 
