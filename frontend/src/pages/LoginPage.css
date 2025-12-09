@@ -80,7 +80,7 @@ form {
 	text-align: center;
 }
 
-input {
+input, select {
 	background-color: #eee;
 	border: none;
 	padding: 12px 15px;
@@ -94,10 +94,10 @@ input {
   	box-shadow: 0 14px 28px rgba(0,0,0,0.25), 
 			0 10px 10px rgba(0,0,0,0.22);
 	position: relative;
-	overflow: hidden;
-	width: 768px;
+	overflow: auto;
+	width: 1024px;
 	max-width: 100%;
-	min-height: 480px;
+	height: 768px;
 }
 
 .form-container {
@@ -255,4 +255,21 @@ footer a {
     height: 200px;
     border-radius: 50%;
     margin-bottom: 20px;
+}
+
+.password-container {
+    position: relative;
+    width: 100%;
+}
+
+.password-container input {
+    width: 100%;
+}
+
+.password-container i {
+    position: absolute;
+    top: 50%;
+    right: 15px;
+    transform: translateY(-50%);
+    cursor: pointer;
 }
