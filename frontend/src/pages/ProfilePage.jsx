@@ -1,6 +1,7 @@
 import React, { useContext, useEffect, useState, useCallback, useRef } from 'react';
 import './ProfilePage.css';
 import { useNavigate } from 'react-router-dom';
+import logo from '/logo.png';
 import AuthContext from '../context/AuthContext';
 
 const getInitials = (fullName) => {
@@ -30,6 +31,34 @@ const ProfilePage = () => {
         label: 'Home',
         isDefault: false
     });
+    const [profileDropdownActive, setProfileDropdownActive] = useState(false);
+
+    const toggleProfile = () => {
+        setProfileDropdownActive(!profileDropdownActive);
+    };
+
+    const handleLogout = () => {
+        if (confirm('Are you sure you want to logout?')) {
+            alert('Logging out...');
+            localStorage.removeItem('token');
+            navigate('/login');
+        }
+    };
+    
+    useEffect(() => {
+        const closeDropdown = (event) => {
+            const profileWrapper = document.querySelector('.profile-wrapper');
+            if (profileWrapper && !profileWrapper.contains(event.target)) {
+                setProfileDropdownActive(false);
+            }
+        };
+    
+        document.addEventListener('click', closeDropdown);
+    
+        return () => {
+            document.removeEventListener('click', closeDropdown);
+        };
+    }, []);
 
     const fileInputRef = useRef(null);
 
@@ -372,11 +401,27 @@ const ProfilePage = () => {
     return (
         <div>
             <header>
-                <div className="header-content">
-                    <button className="back-button" onClick={() => navigate(-1)}>← Back</button>
-                    <h1 className="header-title">My Profile</h1>
-                </div>
-            </header>
+                    <div className="logo-container" onClick={() => navigate('/')}>
+                        <img src={logo} alt="SouqUp Logo" className="logo-img logo-img-large" />
+                        <img src="/SouqUp.png" alt="SouqUp" className="logo-img" />
+                    </div>
+                    <div className="profile-wrapper">
+                        <div className="profile-avatar-header" onClick={toggleProfile} title="Profile options">
+                            {userDetails.profileImageUrl ? (
+                                <img src={userDetails.profileImageUrl} alt="Profile" />
+                            ) : (
+                                getInitials(userDetails.fullName)
+                            )}
+                        </div>
+                        <div className={`profile-dropdown ${profileDropdownActive ? 'active' : ''}`} id="profileDropdown">
+                                                    <button className="dropdown-item" onClick={() => navigate('/profile')}>
+                                                        <span>View Profile</span>
+                                                    </button>                            <button className="dropdown-item logout" onClick={handleLogout}>
+                                <span>Logout</span>
+                            </button>
+                        </div>
+                    </div>
+                </header>
 
             <div className="profile-container">
                 <aside className="profile-sidebar">

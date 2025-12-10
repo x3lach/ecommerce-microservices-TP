@@ -1,11 +1,36 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import './MainPage.css';
 import { useNavigate } from 'react-router-dom';
+import AuthContext from '../context/AuthContext';
+import logo from '/logo.png';
+
+const getInitials = (fullName) => {
+    if (!fullName) return '';
+    const parts = fullName.split(' ').filter(Boolean);
+    if (parts.length === 0) return '';
+    if (parts.length === 1) return parts[0][0].toUpperCase();
+    return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+};
 
 const MainPage = () => {
     const [sidebarHidden, setSidebarHidden] = useState(false);
     const [profileDropdownActive, setProfileDropdownActive] = useState(false);
     const navigate = useNavigate();
+    const { user } = useContext(AuthContext);
+    const [userDetails, setUserDetails] = useState(null);
+
+    useEffect(() => {
+        if (user) {
+            const token = localStorage.getItem('token');
+            fetch(`http://localhost:8081/api/v1/users/${user.id}`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            })
+            .then(response => response.json())
+            .then(data => setUserDetails(data))
+            .catch(error => console.error('Failed to fetch user details', error));
+        }
+    }, [user]);
+
 
     const toggleSidebar = () => {
         setSidebarHidden(!sidebarHidden);
@@ -43,7 +68,10 @@ const MainPage = () => {
             <header>
                 <div className="header-left">
                     <button className="menu-toggle" onClick={toggleSidebar}>☰</button>
-                    <div className="logo">🛍️</div>
+                    <div className="logo-container" onClick={() => navigate('/')}>
+                        <img src={logo} alt="SouqUp Logo" className="logo-img logo-img-large" />
+                        <img src="/SouqUp.png" alt="SouqUp" className="logo-img" />
+                    </div>
                 </div>
 
                 <div className="search-container">
@@ -57,13 +85,19 @@ const MainPage = () => {
                         <span className="cart-badge">3</span>
                     </button>
                     <div className="profile-wrapper">
-                        <button className="icon-button" onClick={toggleProfile}>👤</button>
+                        {userDetails && (
+                            <div className="profile-avatar-header" onClick={toggleProfile} title="Profile options">
+                                {userDetails.profileImageUrl ? (
+                                    <img src={userDetails.profileImageUrl} alt="Profile" />
+                                ) : (
+                                    getInitials(userDetails.fullName)
+                                )}
+                            </div>
+                        )}
                         <div className={`profile-dropdown ${profileDropdownActive ? 'active' : ''}`} id="profileDropdown">
                                                     <button className="dropdown-item" onClick={() => navigate('/profile')}>
-                                                        <span className="icon">👤</span>
                                                         <span>View Profile</span>
                                                     </button>                            <button className="dropdown-item logout" onClick={handleLogout}>
-                                <span className="icon">🚪</span>
                                 <span>Logout</span>
                             </button>
                         </div>
