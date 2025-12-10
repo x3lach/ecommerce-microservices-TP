@@ -118,6 +118,10 @@ public class OrderService {
         return savedOrder;
     }
 
+    public List<Order> getOrdersByUserId(UUID userId) {
+        return orderRepository.findByUserIdOrderByCreatedAtDesc(userId);
+    }
+
     // Helper to build the event DTO
     private OrderCreatedEvent createOrderEvent(Order order) {
         OrderCreatedEvent event = new OrderCreatedEvent();

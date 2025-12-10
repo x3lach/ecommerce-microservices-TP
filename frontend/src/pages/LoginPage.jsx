@@ -35,7 +35,7 @@ const LoginPage = () => {
     const handleLogin = async (e) => {
         e.preventDefault();
         try {
-            const response = await axios.post('http://localhost:8085/auth/login', { email, password }, {
+            const response = await axios.post('http://localhost:8081/auth/login', { email, password }, {
                 headers: {
                     'Content-Type': 'application/json'
                 }
@@ -67,13 +67,13 @@ const LoginPage = () => {
         };
 
         try {
-            await axios.post('http://localhost:8085/api/v1/users', userData, {
+            await axios.post('http://localhost:8081/api/v1/users', userData, {
                 headers: {
                     'Content-Type': 'application/json'
                 }
             });
             // automatically sign in the user after registration
-            const response = await axios.post('http://localhost:8085/auth/login', { email: registerEmail, password: registerPassword }, {
+            const response = await axios.post('http://localhost:8081/auth/login', { email: registerEmail, password: registerPassword }, {
                 headers: {
                     'Content-Type': 'application/json'
                 }
@@ -96,7 +96,7 @@ const LoginPage = () => {
     };
 
     return (
-        <div>
+        <div className="login-page-wrapper">
             <div className={`container ${isSignUp ? 'right-panel-active' : ''}`} id="container">
                 <div className="form-container sign-up-container">
                     <form onSubmit={handleRegister}>

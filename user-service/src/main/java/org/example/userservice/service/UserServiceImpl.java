@@ -12,6 +12,8 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 import org.example.userservice.util.JwtUtil;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 @Service
@@ -20,12 +22,14 @@ public class UserServiceImpl implements UserService {
     private final UserRepository userRepository;
     private final JwtUtil jwtUtil;
     private final PasswordEncoder passwordEncoder = new BCryptPasswordEncoder(); // simple init for now
+    private static final Logger log = LoggerFactory.getLogger(UserServiceImpl.class);
 
     @Override
     public String login(AuthRequest request) {
         // 1. Find user
         User user = userRepository.findByEmail(request.getEmail())
                 .orElseThrow(() -> new RuntimeException("User not found"));
+        log.info("User found by email: {}", user);
 
         // 2. Check password
         // If passwords were stored encoded, use passwordEncoder.matches().
@@ -67,6 +71,7 @@ public class UserServiceImpl implements UserService {
     public UserResponse findById(UUID id) {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("User not found"));
+        log.info("User found by id: {}", user);
 
         return toUserResponse(user);
     }

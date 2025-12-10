@@ -10,6 +10,9 @@ import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import org.springframework.web.bind.annotation.GetMapping;
+
+import java.util.List;
 import java.util.UUID;
 
 @RestController
@@ -30,5 +33,11 @@ public class OrderController {
     public ResponseEntity<Order> createOrder(@RequestHeader("X-User-Id") String userId) {
         Order order = orderService.createOrder(UUID.fromString(userId));
         return ResponseEntity.status(HttpStatus.CREATED).body(order);
+    }
+
+    @GetMapping
+    public ResponseEntity<List<Order>> getOrdersForUser(@RequestHeader("X-User-Id") String userId) {
+        List<Order> orders = orderService.getOrdersByUserId(UUID.fromString(userId));
+        return ResponseEntity.ok(orders);
     }
 }
