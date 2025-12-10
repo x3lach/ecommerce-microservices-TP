@@ -5,6 +5,8 @@ package org.example.userservice.model;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 @Entity
@@ -30,9 +32,14 @@ public class User {
     @Enumerated(EnumType.STRING)
     private Role role;
 
+    // Primary address fields (kept for backward compatibility and default address)
     private String addressLine1;
     private String city;
     private String postalCode;
     private String country;
     private String phone;
+
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Builder.Default
+    private List<Address> addresses = new ArrayList<>();
 }
