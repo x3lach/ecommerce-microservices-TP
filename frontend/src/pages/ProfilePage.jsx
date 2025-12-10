@@ -1,4 +1,4 @@
-import React, { useContext, useEffect, useState } from 'react';
+import React, { useContext, useEffect, useState, useCallback } from 'react';
 import './ProfilePage.css';
 import { useNavigate } from 'react-router-dom';
 import AuthContext from '../context/AuthContext';
@@ -10,10 +10,6 @@ const ProfilePage = () => {
     const [orders, setOrders] = useState([]);
     const [editableFields, setEditableFields] = useState({
         phone: '',
-        addressLine1: '',
-        city: '',
-        postalCode: '',
-        country: ''
     });
     const [addresses, setAddresses] = useState([]);
     const [showAddressModal, setShowAddressModal] = useState(false);
@@ -27,150 +23,104 @@ const ProfilePage = () => {
         isDefault: false
     });
 
-    useEffect(() => {
-        const fetchUserDetails = async () => {
-            if (user) {
-                const token = localStorage.getItem('token');
-                console.log('Fetching user details for ID:', user.id);
-                try {
-                    const response = await fetch(`http://localhost:8081/api/v1/users/${user.id}`, {
-                        headers: {
-                            'Authorization': `Bearer ${token}`,
-                            'Content-Type': 'application/json'
-                        }
-                    });
-                    console.log('Response status:', response.status);
-                    if (response.ok) {
-                        const data = await response.json();
-                        console.log('Fetched user details:', data);
-                        setUserDetails(data);
-                        setEditableFields({
-                            phone: data.phone || '',
-                            addressLine1: data.addressLine1 || '',
-                            city: data.city || '',
-                            postalCode: data.postalCode || '',
-                            country: data.country || ''
-                        });
+    const fetchAllData = useCallback(async () => {
+        if (user) {
+            const token = localStorage.getItem('token');
+            try {
+                // Fetch user details
+                const userResponse = await fetch(`http://localhost:8081/api/v1/users/${user.id}`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (!userResponse.ok) throw new Error('Failed to fetch user details');
+                const userData = await userResponse.json();
+                setUserDetails(userData);
+                setEditableFields({ phone: userData.phone || '' });
 
-                        // If user has address data, create a default address object for display
-                        if (data.addressLine1 || data.city || data.postalCode || data.country) {
-                            const defaultAddress = {
-                                id: 'default-' + user.id, // Temporary ID for the default address
-                                addressLine1: data.addressLine1 || '',
-                                city: data.city || '',
-                                postalCode: data.postalCode || '',
-                                country: data.country || '',
-                                isDefault: true,
-                                label: 'Home',
-                                isFromUserTable: true // Flag to indicate this is from users table
-                            };
-                            setAddresses([defaultAddress]);
-                        }
-                    } else {
-                        const errorText = await response.text();
-                        console.error('Failed to fetch user details:', response.status, errorText);
-                    }
-                } catch (error) {
-                    console.error('Error fetching user details:', error);
+                // Create the default address object from user data
+                const defaultAddress = {
+                    id: `user-${user.id}`, // Unique ID for the main address
+                    addressLine1: userData.addressLine1,
+                    city: userData.city,
+                    postalCode: userData.postalCode,
+                    country: userData.country,
+                    isDefault: true,
+                    label: 'Primary',
+                };
+
+                // Fetch other addresses
+                const addressesResponse = await fetch(`http://localhost:8081/api/v1/users/${user.id}/addresses`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                
+                let otherAddresses = [];
+                if (addressesResponse.ok) {
+                    otherAddresses = await addressesResponse.json();
+                } else if (addressesResponse.status !== 404) {
+                    console.error('Failed to fetch addresses');
                 }
+
+                // Filter out any address that might be a stray duplicate of the default
+                otherAddresses = otherAddresses.filter(addr => 
+                    !addr.isDefault && (
+                    addr.addressLine1 !== defaultAddress.addressLine1 ||
+                    addr.city !== defaultAddress.city ||
+                    addr.postalCode !== defaultAddress.postalCode
+                    )
+                );
+
+                // Combine and set addresses, ensuring default is first
+                setAddresses([defaultAddress, ...otherAddresses]);
+
+            } catch (error) {
+                console.error('Error fetching data:', error);
             }
-        };
+        }
+    }, [user]);
+
+    useEffect(() => {
+        fetchAllData();
 
         const fetchOrders = async () => {
             if (user) {
                 const token = localStorage.getItem('token');
                 try {
                     const response = await fetch(`http://localhost:8081/api/v1/orders`, {
-                        headers: {
-                            'Authorization': `Bearer ${token}`,
-                            'Content-Type': 'application/json'
-                        }
+                        headers: { 'Authorization': `Bearer ${token}` }
                     });
-                    if (response.ok) {
-                        const data = await response.json();
-                        setOrders(data);
-                    } else {
-                        console.error('Failed to fetch orders');
-                    }
+                    if (response.ok) setOrders(await response.json());
+                    else console.error('Failed to fetch orders');
                 } catch (error) {
                     console.error('Error fetching orders:', error);
                 }
             }
         };
-
-        const fetchAddresses = async () => {
-            if (user) {
-                const token = localStorage.getItem('token');
-                try {
-                    const response = await fetch(`http://localhost:8081/api/v1/users/${user.id}/addresses`, {
-                        headers: {
-                            'Authorization': `Bearer ${token}`,
-                            'Content-Type': 'application/json'
-                        }
-                    });
-                    if (response.ok) {
-                        const data = await response.json();
-                        console.log('Fetched addresses from API:', data);
-                        // If we have addresses from API, use those instead
-                        if (data && data.length > 0) {
-                            setAddresses(data);
-                        }
-                    } else {
-                        console.log('Address API not available yet (404), using user table data');
-                    }
-                } catch (error) {
-                    console.log('Error fetching addresses, using user table data:', error);
-                }
-            }
-        };
-
-        fetchUserDetails();
         fetchOrders();
-        fetchAddresses();
-    }, [user]);
+    }, [user, fetchAllData]);
 
     const handleFieldChange = (field, value) => {
-        setEditableFields(prev => ({
-            ...prev,
-            [field]: value
-        }));
+        setEditableFields(prev => ({ ...prev, [field]: value }));
     };
 
     const updateUserField = async (field, value) => {
         if (user && userDetails) {
             const token = localStorage.getItem('token');
+            const updatedData = { ...userDetails, [field]: value };
             try {
-                const updatedData = {
-                    ...userDetails,
-                    [field]: value
-                };
-
                 const response = await fetch(`http://localhost:8081/api/v1/users/${user.id}`, {
                     method: 'PUT',
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Content-Type': 'application/json'
-                    },
+                    headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
                     body: JSON.stringify(updatedData)
                 });
-
                 if (response.ok) {
-                    const data = await response.json();
-                    setUserDetails(data);
+                    setUserDetails(await response.json());
                     console.log(`${field} updated successfully`);
                 } else {
                     console.error(`Failed to update ${field}`);
-                    setEditableFields(prev => ({
-                        ...prev,
-                        [field]: userDetails[field] || ''
-                    }));
+                    setEditableFields(prev => ({ ...prev, [field]: userDetails[field] || '' }));
                 }
             } catch (error) {
                 console.error(`Error updating ${field}:`, error);
-                setEditableFields(prev => ({
-                    ...prev,
-                    [field]: userDetails[field] || ''
-                }));
+                setEditableFields(prev => ({ ...prev, [field]: userDetails[field] || '' }));
             }
         }
     };
@@ -182,181 +132,188 @@ const ProfilePage = () => {
     };
 
     const handleKeyPress = (e) => {
-        if (e.key === 'Enter') {
-            e.target.blur();
-        }
+        if (e.key === 'Enter') e.target.blur();
     };
 
     const handleAddressFormChange = (field, value) => {
-        setAddressForm(prev => ({
-            ...prev,
-            [field]: value
-        }));
+        setAddressForm(prev => ({ ...prev, [field]: value }));
     };
 
     const handleAddressSubmit = async (e) => {
         e.preventDefault();
-        if (user && userDetails) {
-            const token = localStorage.getItem('token');
-            try {
-                // If editing an address from the users table (temporary ID), update the user record instead
-                if (editingAddress && editingAddress.isFromUserTable) {
-                    // Update the user's primary address fields directly
-                    const updatedUserData = {
-                        ...userDetails,
-                        addressLine1: addressForm.addressLine1,
-                        city: addressForm.city,
-                        postalCode: addressForm.postalCode,
-                        country: addressForm.country,
-                    };
+        if (!user) return;
 
-                    const userResponse = await fetch(`http://localhost:8081/api/v1/users/${user.id}`, {
-                        method: 'PUT',
-                        headers: {
-                            'Authorization': `Bearer ${token}`,
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify(updatedUserData)
-                    });
+        const token = localStorage.getItem('token');
+        const isEditing = !!editingAddress;
+        const isDefaultAddressEdit = isEditing && editingAddress.id === `user-${user.id}`;
 
-                    if (userResponse.ok) {
-                        const userData = await userResponse.json();
-                        setUserDetails(userData);
-                        setEditableFields({
-                            phone: userData.phone || '',
-                            addressLine1: userData.addressLine1 || '',
-                            city: userData.city || '',
-                            postalCode: userData.postalCode || '',
-                            country: userData.country || ''
-                        });
+        try {
+            // Case 1: The user wants to make a different address the new default.
+            if (addressForm.isDefault && !isDefaultAddressEdit) {
+                await handleSetDefaultAddress(
+                    isEditing ? { ...editingAddress, ...addressForm } : addressForm,
+                    isEditing ? editingAddress.id : null
+                );
+            
+            // Case 2: The user is editing the current default address.
+            } else if (isDefaultAddressEdit) {
+                const updatedUserData = {
+                    ...userDetails,
+                    addressLine1: addressForm.addressLine1,
+                    city: addressForm.city,
+                    postalCode: addressForm.postalCode,
+                    country: addressForm.country,
+                };
+                const userUpdateUrl = `http://localhost:8081/api/v1/users/${user.id}`;
+                const response = await fetch(userUpdateUrl, {
+                    method: 'PUT',
+                    headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                    body: JSON.stringify(updatedUserData)
+                });
+                if (!response.ok) throw new Error('Failed to update default user address');
 
-                        // Update the addresses display
-                        const updatedAddress = {
-                            id: 'default-' + user.id,
-                            addressLine1: userData.addressLine1 || '',
-                            city: userData.city || '',
-                            postalCode: userData.postalCode || '',
-                            country: userData.country || '',
-                            isDefault: true,
-                            label: addressForm.label || 'Home',
-                            isFromUserTable: true
-                        };
-                        setAddresses([updatedAddress]);
-
-                        setShowAddressModal(false);
-                        setAddressForm({
-                            addressLine1: '',
-                            city: '',
-                            postalCode: '',
-                            country: '',
-                            label: 'Home',
-                            isDefault: false
-                        });
-                        setEditingAddress(null);
-                        console.log('Address updated successfully in users table');
-                    } else {
-                        console.error('Failed to update user address');
-                    }
-                } else {
-                    // Use the Address API for addresses table (when backend is ready)
-                    const url = editingAddress && !editingAddress.isFromUserTable
-                        ? `http://localhost:8081/api/v1/users/${user.id}/addresses/${editingAddress.id}`
-                        : `http://localhost:8081/api/v1/users/${user.id}/addresses`;
-
-                    const response = await fetch(url, {
-                        method: editingAddress ? 'PUT' : 'POST',
-                        headers: {
-                            'Authorization': `Bearer ${token}`,
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify(addressForm)
-                    });
-
-                    if (response.ok) {
-                        const addressesResponse = await fetch(`http://localhost:8081/api/v1/users/${user.id}/addresses`, {
-                            headers: {
-                                'Authorization': `Bearer ${token}`,
-                                'Content-Type': 'application/json'
-                            }
-                        });
-
-                        if (addressesResponse.ok) {
-                            const updatedAddresses = await addressesResponse.json();
-                            setAddresses(updatedAddresses);
-                        }
-
-                        if (addressForm.isDefault) {
-                            const userResponse = await fetch(`http://localhost:8081/api/v1/users/${user.id}`, {
-                                headers: {
-                                    'Authorization': `Bearer ${token}`,
-                                    'Content-Type': 'application/json'
-                                }
-                            });
-                            if (userResponse.ok) {
-                                const userData = await userResponse.json();
-                                setUserDetails(userData);
-                                setEditableFields({
-                                    phone: userData.phone || '',
-                                    addressLine1: userData.addressLine1 || '',
-                                    city: userData.city || '',
-                                    postalCode: userData.postalCode || '',
-                                    country: userData.country || ''
-                                });
-                            }
-                        }
-
-                        setShowAddressModal(false);
-                        setAddressForm({
-                            addressLine1: '',
-                            city: '',
-                            postalCode: '',
-                            country: '',
-                            label: 'Home',
-                            isDefault: false
-                        });
-                        setEditingAddress(null);
-                        console.log('Address saved successfully');
-                    } else {
-                        console.error('Failed to save address - API endpoint may not be available yet');
-                        alert('Cannot save new addresses yet. The backend needs to be restarted with the new Address API. You can still edit the default address.');
-                    }
+            // Case 3: Creating or updating a non-default address.
+            } else {
+                const method = isEditing ? 'PUT' : 'POST';
+                let url = `http://localhost:8081/api/v1/users/${user.id}/addresses`;
+                if (isEditing) {
+                    url += `/${editingAddress.id}`;
                 }
-            } catch (error) {
-                console.error('Error saving address:', error);
-                alert('Failed to save address. Please try again.');
+
+                const response = await fetch(url, {
+                    method,
+                    headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ ...addressForm, isDefault: false }) // Ensure isDefault is false for this path
+                });
+                if (!response.ok) throw new Error('Failed to save address');
             }
+            
+            await fetchAllData();
+            closeAddressModal();
+
+        } catch (error) {
+            console.error('Error saving address:', error);
+            alert('Failed to save address. Please try again.');
         }
     };
 
-    const handleEditAddress = (address) => {
-        setEditingAddress(address);
-        setAddressForm({
-            addressLine1: address.addressLine1,
-            city: address.city,
-            postalCode: address.postalCode,
-            country: address.country,
-            label: address.label,
-            isDefault: address.isDefault
-        });
+    const handleSetDefaultAddress = async (newDefaultAddressData, sourceAddressId) => {
+        if (!user || !userDetails) return;
+        const token = localStorage.getItem('token');
+
+        // 1. Define the old default address from the current userDetails
+        const oldDefaultAddress = {
+            addressLine1: userDetails.addressLine1,
+            city: userDetails.city,
+            postalCode: userDetails.postalCode,
+            country: userDetails.country,
+            label: 'Old Primary', // Give it a sensible label
+            isDefault: false,
+        };
+
+        try {
+            // 2. Update the main user record with the new default address
+            const updatedUserDetails = {
+                ...userDetails,
+                addressLine1: newDefaultAddressData.addressLine1,
+                city: newDefaultAddressData.city,
+                postalCode: newDefaultAddressData.postalCode,
+                country: newDefaultAddressData.country,
+            };
+            const userUpdateResponse = await fetch(`http://localhost:8081/api/v1/users/${user.id}`, {
+                method: 'PUT',
+                headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                body: JSON.stringify(updatedUserDetails)
+            });
+            if (!userUpdateResponse.ok) throw new Error('Failed to update user with new default address');
+
+            // 3. Add the old default address to the addresses list
+            //    Only do this if the old address actually had data
+            if (oldDefaultAddress.addressLine1) {
+                const addOldAddressResponse = await fetch(`http://localhost:8081/api/v1/users/${user.id}/addresses`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                    body: JSON.stringify(oldDefaultAddress)
+                });
+                if (!addOldAddressResponse.ok) {
+                    // This is not ideal, but we should log it. The main update succeeded.
+                    console.error('Could not save the old default address as a secondary address.');
+                }
+            }
+
+            // 4. If the new default was an existing address, delete it from the secondary list
+            if (sourceAddressId && sourceAddressId.startsWith('user-') === false) { // Ensure it's not the user id placeholder
+                const deleteSourceAddressResponse = await fetch(`http://localhost:8081/api/v1/users/${user.id}/addresses/${sourceAddressId}`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (!deleteSourceAddressResponse.ok) {
+                    console.error('Could not remove the promoted address from the secondary list.');
+                }
+            }
+
+        } catch (error) {
+            console.error(error);
+            alert('A multi-step operation to set the default address failed. Data might be inconsistent.');
+            throw error; // Re-throw to prevent modal from closing
+        }
+    };
+    
+    const openAddressModal = (address = null) => {
+        if (address) {
+            setEditingAddress(address);
+            setAddressForm({
+                addressLine1: address.addressLine1,
+                city: address.city,
+                postalCode: address.postalCode,
+                country: address.country,
+                label: address.label,
+                isDefault: address.isDefault
+            });
+        } else {
+            // Reset for "Add New"
+            setEditingAddress(null);
+            setAddressForm({
+                addressLine1: '', city: '', postalCode: '', country: '',
+                label: 'Home', isDefault: addresses.length === 0
+            });
+        }
         setShowAddressModal(true);
+    };
+    
+    const closeAddressModal = () => {
+        setShowAddressModal(false);
+        setEditingAddress(null);
+        setAddressForm({
+            addressLine1: '', city: '', postalCode: '', country: '',
+            label: 'Home', isDefault: false
+        });
     };
 
     const handleDeleteAddress = async (addressId) => {
-        if (user) {
+        if (addresses.length <= 1) {
+            alert('You must have at least one address.');
+            return;
+        }
+
+        const addressToDelete = addresses.find(addr => addr.id === addressId);
+        if (addressToDelete?.isDefault) {
+            alert('Cannot delete the default address. Please set another address as default first.');
+            return;
+        }
+
+        if (user && window.confirm('Are you sure you want to delete this address?')) {
             const token = localStorage.getItem('token');
             try {
                 const response = await fetch(`http://localhost:8081/api/v1/users/${user.id}/addresses/${addressId}`, {
                     method: 'DELETE',
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Content-Type': 'application/json'
-                    }
+                    headers: { 'Authorization': `Bearer ${token}` }
                 });
-
                 if (response.ok) {
-                    setAddresses(prev => prev.filter(address => address.id !== addressId));
+                    await fetchAllData();
                 } else {
                     console.error('Failed to delete address');
+                    alert('Failed to delete address.');
                 }
             } catch (error) {
                 console.error('Error deleting address:', error);
@@ -364,7 +321,7 @@ const ProfilePage = () => {
         }
     };
 
-    if (!user) {
+    if (!user || !userDetails) {
         return <div>Loading...</div>;
     }
 
@@ -372,19 +329,16 @@ const ProfilePage = () => {
         <div>
             <header>
                 <div className="header-content">
-                    <button className="back-button" onClick={() => navigate(-1)}>
-                        ← Back
-                    </button>
+                    <button className="back-button" onClick={() => navigate(-1)}>← Back</button>
                     <h1 className="header-title">My Profile</h1>
                 </div>
             </header>
 
             <div className="profile-container">
                 <aside className="profile-sidebar">
-                    <div className="profile-avatar">
-                    </div>
-                    <h2 className="profile-name">{user.fullName}</h2>
-                    <p className="profile-email">{user.email}</p>
+                    <div className="profile-avatar"></div>
+                    <h2 className="profile-name">{userDetails.fullName}</h2>
+                    <p className="profile-email">{userDetails.email}</p>
                 </aside>
 
                 <main className="profile-content">
@@ -395,11 +349,11 @@ const ProfilePage = () => {
                         <div className="info-grid">
                             <div className="info-item">
                                 <label className="info-label">Full Name</label>
-                                <div className="info-value">{user.fullName}</div>
+                                <div className="info-value">{userDetails.fullName}</div>
                             </div>
                             <div className="info-item">
                                 <label className="info-label">Email Address</label>
-                                <div className="info-value">{user.email}</div>
+                                <div className="info-value">{userDetails.email}</div>
                             </div>
                             <div className="info-item">
                                 <label className="info-label">Phone Number</label>
@@ -413,57 +367,9 @@ const ProfilePage = () => {
                                     placeholder="Enter phone number"
                                 />
                             </div>
-                            <div className="info-item">
-                                <label className="info-label">Address</label>
-                                <input
-                                    type="text"
-                                    className="info-value editable-field"
-                                    value={editableFields.addressLine1}
-                                    onChange={(e) => handleFieldChange('addressLine1', e.target.value)}
-                                    onBlur={() => handleBlur('addressLine1')}
-                                    onKeyDown={handleKeyPress}
-                                    placeholder="Enter address"
-                                />
-                            </div>
-                            <div className="info-item">
-                                <label className="info-label">City</label>
-                                <input
-                                    type="text"
-                                    className="info-value editable-field"
-                                    value={editableFields.city}
-                                    onChange={(e) => handleFieldChange('city', e.target.value)}
-                                    onBlur={() => handleBlur('city')}
-                                    onKeyDown={handleKeyPress}
-                                    placeholder="Enter city"
-                                />
-                            </div>
-                            <div className="info-item">
-                                <label className="info-label">Postal Code</label>
-                                <input
-                                    type="text"
-                                    className="info-value editable-field"
-                                    value={editableFields.postalCode}
-                                    onChange={(e) => handleFieldChange('postalCode', e.target.value)}
-                                    onBlur={() => handleBlur('postalCode')}
-                                    onKeyDown={handleKeyPress}
-                                    placeholder="Enter postal code"
-                                />
-                            </div>
-                            <div className="info-item">
-                                <label className="info-label">Country</label>
-                                <input
-                                    type="text"
-                                    className="info-value editable-field"
-                                    value={editableFields.country}
-                                    onChange={(e) => handleFieldChange('country', e.target.value)}
-                                    onBlur={() => handleBlur('country')}
-                                    onKeyDown={handleKeyPress}
-                                    placeholder="Enter country"
-                                />
-                            </div>
-                            <div className="info-item">
+                             <div className="info-item">
                                 <label className="info-label">Role</label>
-                                <div className="info-value">{user.role}</div>
+                                <div className="info-value">{userDetails.role}</div>
                             </div>
                         </div>
                     </section>
@@ -471,44 +377,39 @@ const ProfilePage = () => {
                     <section className="content-section">
                         <div className="section-header">
                             <h2 className="section-title">Saved Addresses</h2>
-                            <button className="edit-button" onClick={() => setShowAddressModal(true)}>
+                            <button className="edit-button" onClick={() => openAddressModal()}>
                                 ➕ Add New
                             </button>
                         </div>
                         <div className="address-grid">
-                            {addresses.length > 0 ? (
-                                addresses.map(address => (
-                                    <div className={`address-card ${address.isDefault ? 'default' : ''}`} key={address.id}>
-                                        {address.isDefault && <span className="address-badge">Default</span>}
-                                        <div className="address-details">
-                                            {address.addressLine1}<br />
-                                            {address.city}, {address.postalCode}<br />
-                                            {address.country}
-                                        </div>
-                                        <div className="address-actions">
-                                            <button className="address-action-btn" onClick={() => handleEditAddress(address)}>Edit</button>
-                                            <button className="address-action-btn" onClick={() => handleDeleteAddress(address.id)}>Remove</button>
-                                        </div>
+                            {addresses.map(address => (
+                                <div className={`address-card ${address.isDefault ? 'default' : ''}`} key={address.id}>
+                                    {address.isDefault && <span className="address-badge">Default</span>}
+                                    <div className="address-details">
+                                        <strong>{address.label}</strong><br />
+                                        {address.addressLine1}<br />
+                                        {address.city}, {address.postalCode}<br />
+                                        {address.country}
                                     </div>
-                                ))
-                            ) : (
-                                <div className="no-addresses">
-                                    No saved addresses. Add a new address.
+                                    <div className="address-actions">
+                                        <button className="address-action-btn" onClick={() => openAddressModal(address)}>Edit</button>
+                                        {!address.isDefault && (
+                                            <button className="address-action-btn" onClick={() => handleDeleteAddress(address.id)}>Remove</button>
+                                        )}
+                                    </div>
                                 </div>
-                            )}
-                            <div className="address-card add-address-card" onClick={() => setShowAddressModal(true)}>
+                            ))}
+                            <div className="address-card add-address-card" onClick={() => openAddressModal()}>
                                 <div className="add-icon">+</div>
                                 <div className="add-text">Add New Address</div>
                             </div>
                         </div>
                     </section>
-
+                    
                     <section className="content-section">
                         <div className="section-header">
                             <h2 className="section-title">Recent Orders</h2>
-                            <button className="edit-button">
-                                View All
-                            </button>
+                            <button className="edit-button">View All</button>
                         </div>
                         <div className="order-list">
                             {orders.map(order => (
@@ -536,64 +437,45 @@ const ProfilePage = () => {
             {showAddressModal && (
                 <div className="address-modal">
                     <div className="modal-content">
-                        <span className="close" onClick={() => setShowAddressModal(false)}>&times;</span>
+                        <span className="close" onClick={closeAddressModal}>&times;</span>
                         <h2>{editingAddress ? 'Edit Address' : 'Add New Address'}</h2>
                         <form onSubmit={handleAddressSubmit}>
                             <div className="form-group">
                                 <label>Address Line 1</label>
-                                <input
-                                    type="text"
-                                    value={addressForm.addressLine1}
-                                    onChange={(e) => handleAddressFormChange('addressLine1', e.target.value)}
-                                    required
-                                />
+                                <input type="text" value={addressForm.addressLine1} onChange={(e) => handleAddressFormChange('addressLine1', e.target.value)} required />
                             </div>
                             <div className="form-group">
                                 <label>City</label>
-                                <input
-                                    type="text"
-                                    value={addressForm.city}
-                                    onChange={(e) => handleAddressFormChange('city', e.target.value)}
-                                    required
-                                />
+                                <input type="text" value={addressForm.city} onChange={(e) => handleAddressFormChange('city', e.target.value)} required />
                             </div>
                             <div className="form-group">
                                 <label>Postal Code</label>
-                                <input
-                                    type="text"
-                                    value={addressForm.postalCode}
-                                    onChange={(e) => handleAddressFormChange('postalCode', e.target.value)}
-                                    required
-                                />
+                                <input type="text" value={addressForm.postalCode} onChange={(e) => handleAddressFormChange('postalCode', e.target.value)} required />
                             </div>
                             <div className="form-group">
                                 <label>Country</label>
-                                <input
-                                    type="text"
-                                    value={addressForm.country}
-                                    onChange={(e) => handleAddressFormChange('country', e.target.value)}
-                                    required
-                                />
+                                <input type="text" value={addressForm.country} onChange={(e) => handleAddressFormChange('country', e.target.value)} required />
                             </div>
                             <div className="form-group">
                                 <label>Label</label>
-                                <input
-                                    type="text"
-                                    value={addressForm.label}
-                                    onChange={(e) => handleAddressFormChange('label', e.target.value)}
-                                />
+                                <input type="text" value={addressForm.label} onChange={(e) => handleAddressFormChange('label', e.target.value)} />
                             </div>
                             <div className="form-group checkbox-group">
                                 <input
                                     type="checkbox"
+                                    id="defaultAddress"
                                     checked={addressForm.isDefault}
                                     onChange={(e) => handleAddressFormChange('isDefault', e.target.checked)}
-                                    id="defaultAddress"
+                                    // Can't uncheck if it's the only address OR if editing the current default address
+                                    disabled={editingAddress?.isDefault || addresses.length === 0}
                                 />
-                                <label htmlFor="defaultAddress">Set as default address</label>
+                                <label htmlFor="defaultAddress">
+                                    Set as default address
+                                    {(editingAddress?.isDefault || addresses.length === 0) && ' (Cannot uncheck the current default)'}
+                                </label>
                             </div>
                             <div className="form-actions">
-                                <button type="button" className="cancel-button" onClick={() => setShowAddressModal(false)}>Cancel</button>
+                                <button type="button" className="cancel-button" onClick={closeAddressModal}>Cancel</button>
                                 <button type="submit" className="save-button">
                                     {editingAddress ? 'Update Address' : 'Save Address'}
                                 </button>

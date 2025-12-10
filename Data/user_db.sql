@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Dec 09, 2025 at 02:35 PM
+-- Generation Time: Dec 10, 2025 at 04:39 PM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -20,6 +20,30 @@ SET time_zone = "+00:00";
 --
 -- Database: `user_db`
 --
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `addresses`
+--
+
+CREATE TABLE `addresses` (
+  `id` binary(16) NOT NULL,
+  `address_line1` varchar(255) DEFAULT NULL,
+  `city` varchar(255) DEFAULT NULL,
+  `country` varchar(255) DEFAULT NULL,
+  `is_default` bit(1) DEFAULT NULL,
+  `label` varchar(255) DEFAULT NULL,
+  `postal_code` varchar(255) DEFAULT NULL,
+  `user_id` binary(16) NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `addresses`
+--
+
+INSERT INTO `addresses` (`id`, `address_line1`, `city`, `country`, `is_default`, `label`, `postal_code`, `user_id`) VALUES
+(0xa01dd08558e94079a08d73f223e8b58f, 'Rabat ya kawkab', 'Rabat', 'Morocco', b'1', 'Home', '30350', 0xbe5b0d82e3274d8ea6147ef978025a20);
 
 -- --------------------------------------------------------
 
@@ -68,11 +92,20 @@ CREATE TABLE `users` (
 --
 
 INSERT INTO `users` (`id`, `address_line1`, `city`, `country`, `email`, `full_name`, `password`, `phone`, `postal_code`, `role`) VALUES
-(0xbe5b0d82e3274d8ea6147ef978025a20, '123 Main St', 'Casa', 'Maroc', 'ilias@gmail.com', 'Areski Ilias', '$2a$10$ofRpVX/LYF4CdKTdpyPVi.75kbNtE2DOQ6doWXkcPjEC0R9O.jhFa', '0612345678', '12345', 'CLIENT');
+(0x321ecfa721774c63a987f7ad377351b5, 'CASABLANCA', 'CASABLANCA', 'Morocco', 'anas@gmai.com', 'anas Areski', '$2a$10$7SRmwS5wmrrMS219kpjhI.hAzBD9qCwkTOZDxP0tKxr.6HlKB9d9i', '0777432697', '20250', 'CLIENT'),
+(0x763b3d6ef8b945de9c5c190c4ca2fa27, 'CASABLANCA', 'CASABLANCA', 'Morocco', 'areski@gmail.com', 'Ilias Areski', '$2a$10$SJ0/zmWqVPx3I7RH/mx77eXkoVhvH7/QyWrLogpABeR8/NvrMSJoS', '0777432697', '20250', 'CLIENT'),
+(0xbe5b0d82e3274d8ea6147ef978025a20, 'Idrissia 1 Rue 02 N37', 'CASABLANCA', 'Morocco', 'ilias@gmail.com', 'Areski Ilias', '$2a$10$ofRpVX/LYF4CdKTdpyPVi.75kbNtE2DOQ6doWXkcPjEC0R9O.jhFa', '0612345677', '20250', 'CLIENT');
 
 --
 -- Indexes for dumped tables
 --
+
+--
+-- Indexes for table `addresses`
+--
+ALTER TABLE `addresses`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `FK1fa36y2oqhao3wgg2rw1pi459` (`user_id`);
 
 --
 -- Indexes for table `user`
@@ -97,6 +130,16 @@ ALTER TABLE `users`
 --
 ALTER TABLE `user`
   MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+
+--
+-- Constraints for dumped tables
+--
+
+--
+-- Constraints for table `addresses`
+--
+ALTER TABLE `addresses`
+  ADD CONSTRAINT `FK1fa36y2oqhao3wgg2rw1pi459` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`);
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
