@@ -22,4 +22,5 @@ public class UserResponse {
     private String postalCode;
     private String country;
     private String phone;
+    private String profileImageUrl;
 }

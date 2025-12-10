@@ -1,7 +1,15 @@
-import React, { useContext, useEffect, useState, useCallback } from 'react';
+import React, { useContext, useEffect, useState, useCallback, useRef } from 'react';
 import './ProfilePage.css';
 import { useNavigate } from 'react-router-dom';
 import AuthContext from '../context/AuthContext';
+
+const getInitials = (fullName) => {
+    if (!fullName) return '';
+    const parts = fullName.split(' ').filter(Boolean);
+    if (parts.length === 0) return '';
+    if (parts.length === 1) return parts[0][0].toUpperCase();
+    return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+};
 
 const ProfilePage = () => {
     const navigate = useNavigate();
@@ -22,6 +30,8 @@ const ProfilePage = () => {
         label: 'Home',
         isDefault: false
     });
+
+    const fileInputRef = useRef(null);
 
     const fetchAllData = useCallback(async () => {
         if (user) {
@@ -321,6 +331,40 @@ const ProfilePage = () => {
         }
     };
 
+    const handleAvatarClick = () => {
+        fileInputRef.current.click();
+    };
+
+    const handleImageUpload = async (event) => {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        const token = localStorage.getItem('token');
+        const formData = new FormData();
+        formData.append('file', file);
+
+        try {
+            const response = await fetch(`http://localhost:8081/api/v1/users/${user.id}/profile-image`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                },
+                body: formData,
+            });
+
+            if (!response.ok) {
+                throw new Error('Image upload failed');
+            }
+
+            const data = await response.json();
+            setUserDetails(prev => ({ ...prev, profileImageUrl: data.profileImageUrl }));
+
+        } catch (error) {
+            console.error('Error uploading image:', error);
+            alert('Failed to upload image. Please try again.');
+        }
+    };
+
     if (!user || !userDetails) {
         return <div>Loading...</div>;
     }
@@ -336,7 +380,20 @@ const ProfilePage = () => {
 
             <div className="profile-container">
                 <aside className="profile-sidebar">
-                    <div className="profile-avatar"></div>
+                    <div className="profile-avatar" onClick={handleAvatarClick} title="Click to upload a new profile image">
+                        {userDetails.profileImageUrl ? (
+                            <img src={userDetails.profileImageUrl} alt="Profile" />
+                        ) : (
+                            getInitials(userDetails.fullName)
+                        )}
+                    </div>
+                    <input
+                        type="file"
+                        ref={fileInputRef}
+                        onChange={handleImageUpload}
+                        style={{ display: 'none' }}
+                        accept="image/png, image/jpeg"
+                    />
                     <h2 className="profile-name">{userDetails.fullName}</h2>
                     <p className="profile-email">{userDetails.email}</p>
                 </aside>
@@ -377,9 +434,7 @@ const ProfilePage = () => {
                     <section className="content-section">
                         <div className="section-header">
                             <h2 className="section-title">Saved Addresses</h2>
-                            <button className="edit-button" onClick={() => openAddressModal()}>
-                                ➕ Add New
-                            </button>
+
                         </div>
                         <div className="address-grid">
                             {addresses.map(address => (

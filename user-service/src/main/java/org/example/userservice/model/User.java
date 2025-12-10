@@ -38,6 +38,7 @@ public class User {
     private String postalCode;
     private String country;
     private String phone;
+    private String profileImageUrl;
 
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default

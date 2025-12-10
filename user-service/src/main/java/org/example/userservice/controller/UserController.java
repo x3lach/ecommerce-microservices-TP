@@ -6,6 +6,7 @@ import org.example.userservice.dto.UserResponse;
 import org.example.userservice.service.UserService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 import java.util.UUID;
@@ -21,6 +22,11 @@ public class UserController {
 	public ResponseEntity<UserResponse> create(@RequestBody UserRequest request) {
 		UserResponse created = userService.create(request);
 		return ResponseEntity.status(201).body(created);
+	}
+
+	@PostMapping("/{id}/profile-image")
+	public ResponseEntity<UserResponse> uploadProfileImage(@PathVariable UUID id, @RequestParam("file") MultipartFile file) {
+		return ResponseEntity.ok(userService.updateProfileImage(id, file));
 	}
 
 	@GetMapping("/{id}")

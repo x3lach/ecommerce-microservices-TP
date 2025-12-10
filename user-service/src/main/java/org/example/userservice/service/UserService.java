@@ -3,6 +3,8 @@ package org.example.userservice.service;
 import org.example.userservice.dto.UserRequest;
 import org.example.userservice.dto.UserResponse;
 import org.example.userservice.dto.AuthRequest;
+import org.springframework.web.multipart.MultipartFile;
+
 import java.util.List;
 import java.util.UUID;
 
@@ -13,4 +15,5 @@ public interface UserService {
     List<UserResponse> findAll();
     UserResponse update(UserRequest request);
     void delete(UUID id);
+    UserResponse updateProfileImage(UUID userId, MultipartFile file);
 }

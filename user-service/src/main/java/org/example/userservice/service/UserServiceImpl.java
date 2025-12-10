@@ -7,6 +7,13 @@ import org.example.userservice.model.User;
 import org.example.userservice.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
+
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -23,6 +30,7 @@ public class UserServiceImpl implements UserService {
     private final JwtUtil jwtUtil;
     private final PasswordEncoder passwordEncoder = new BCryptPasswordEncoder(); // simple init for now
     private static final Logger log = LoggerFactory.getLogger(UserServiceImpl.class);
+    private final Path root = Paths.get("uploads/profile-images");
 
     @Override
     public String login(AuthRequest request) {
@@ -115,6 +123,52 @@ public class UserServiceImpl implements UserService {
         userRepository.deleteById(id);
     }
 
+    @Override
+    public UserResponse updateProfileImage(UUID userId, MultipartFile file) {
+        try {
+            if (file.isEmpty()) {
+                throw new RuntimeException("Failed to store empty file.");
+            }
+            // Create directory if it does not exist
+            if (!Files.exists(root)) {
+                try {
+                    Files.createDirectories(root);
+                } catch (IOException e) {
+                    throw new RuntimeException("Could not initialize storage directory", e);
+                }
+            }
+
+            User user = userRepository.findById(userId)
+                    .orElseThrow(() -> new RuntimeException("User not found"));
+
+            // Generate a unique file name
+            String originalFilename = file.getOriginalFilename();
+            String extension = "";
+            if (originalFilename != null && originalFilename.contains(".")) {
+                extension = originalFilename.substring(originalFilename.lastIndexOf("."));
+            }
+            String filename = userId.toString() + "_" + System.currentTimeMillis() + extension;
+
+            // Save the file
+            Files.copy(file.getInputStream(), this.root.resolve(filename));
+
+            // Generate file URL
+            String fileUrl = ServletUriComponentsBuilder.fromCurrentContextPath()
+                    .path("/uploads/profile-images/")
+                    .path(filename)
+                    .toUriString();
+
+            // Update user
+            user.setProfileImageUrl(fileUrl);
+            User saved = userRepository.save(user);
+
+            return toUserResponse(saved);
+
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to store file.", e);
+        }
+    }
+
     private UserResponse toUserResponse(User user) {
         return UserResponse.builder()
                 .id(user.getId())
@@ -126,6 +180,7 @@ public class UserServiceImpl implements UserService {
                 .postalCode(user.getPostalCode())
                 .country(user.getCountry())
                 .phone(user.getPhone())
+                .profileImageUrl(user.getProfileImageUrl())
                 .build();
     }
 }
