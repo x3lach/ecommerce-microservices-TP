@@ -1,0 +1,893 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sony WH-1000XM5 - SABT Marketplace</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary-gradient: linear-gradient(135deg, #F6A440 0%, #D46A1C 100%);
+            --secondary-light: #FCE3C1;
+            --white: #FFFFFF;
+            --text-primary: #3B2B20;
+            --text-secondary: #6B5B50;
+            --border-color: #E8DED0;
+            --shadow-sm: 0 2px 8px rgba(212, 106, 28, 0.08);
+            --shadow-md: 0 4px 16px rgba(212, 106, 28, 0.12);
+            --shadow-lg: 0 8px 24px rgba(212, 106, 28, 0.16);
+            --success: #4CAF50;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(180deg, #FFFBF5 0%, #FFF8ED 100%);
+            color: var(--text-primary);
+            min-height: 100vh;
+        }
+
+        /* HEADER */
+        header {
+            background: var(--white);
+            padding: 1rem 2rem;
+            box-shadow: var(--shadow-sm);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header-content {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+        }
+
+        .back-button {
+            background: var(--secondary-light);
+            border: none;
+            padding: 0.75rem 1rem;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 0.95rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: all 0.3s ease;
+            color: var(--text-primary);
+            font-weight: 600;
+        }
+
+        .back-button:hover {
+            background: var(--primary-gradient);
+            color: white;
+            transform: translateX(-3px);
+        }
+
+        .logo {
+            width: 44px;
+            height: 44px;
+            background: var(--primary-gradient);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+            color: white;
+        }
+
+        .search-bar {
+            flex: 1;
+            max-width: 500px;
+            position: relative;
+        }
+
+        .search-bar input {
+            width: 100%;
+            padding: 0.75rem 1rem 0.75rem 2.75rem;
+            border: 2px solid var(--border-color);
+            border-radius: 20px;
+            font-size: 0.9rem;
+            transition: all 0.3s ease;
+        }
+
+        .search-bar input:focus {
+            outline: none;
+            border-color: #F6A440;
+        }
+
+        .search-bar::before {
+            content: '🔍';
+            position: absolute;
+            left: 1rem;
+            top: 50%;
+            transform: translateY(-50%);
+        }
+
+        .header-icons {
+            display: flex;
+            gap: 0.75rem;
+        }
+
+        .icon-btn {
+            width: 44px;
+            height: 44px;
+            background: var(--secondary-light);
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 1.25rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .icon-btn:hover {
+            background: var(--primary-gradient);
+            color: white;
+            transform: translateY(-2px);
+        }
+
+        .cart-badge {
+            position: absolute;
+            top: -4px;
+            right: -4px;
+            background: #F44336;
+            color: white;
+            font-size: 0.7rem;
+            font-weight: 700;
+            width: 20px;
+            height: 20px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* BREADCRUMB */
+        .breadcrumb {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 1.5rem 2rem 0;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+
+        .breadcrumb a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            transition: color 0.3s ease;
+        }
+
+        .breadcrumb a:hover {
+            color: #F6A440;
+        }
+
+        .breadcrumb span {
+            color: var(--text-primary);
+            font-weight: 600;
+        }
+
+        /* MAIN CONTAINER */
+        .product-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+            display: grid;
+            grid-template-columns: 600px 1fr;
+            gap: 3rem;
+        }
+
+        /* IMAGE GALLERY */
+        .image-gallery {
+            position: sticky;
+            top: 100px;
+            height: fit-content;
+        }
+
+        .main-image-container {
+            width: 100%;
+            height: 600px;
+            background: var(--white);
+            border-radius: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 15rem;
+            border: 2px solid var(--border-color);
+            box-shadow: var(--shadow-md);
+            margin-bottom: 1.5rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .product-badge {
+            position: absolute;
+            top: 1.5rem;
+            left: 1.5rem;
+            background: var(--primary-gradient);
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 30px;
+            font-weight: 700;
+            font-size: 0.95rem;
+            box-shadow: var(--shadow-md);
+        }
+
+        .wishlist-btn {
+            position: absolute;
+            top: 1.5rem;
+            right: 1.5rem;
+            width: 56px;
+            height: 56px;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border: none;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 1.75rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+            box-shadow: var(--shadow-md);
+        }
+
+        .wishlist-btn:hover {
+            transform: scale(1.1);
+            background: var(--primary-gradient);
+        }
+
+        .image-thumbnails {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 1rem;
+        }
+
+        .thumbnail {
+            aspect-ratio: 1;
+            background: var(--white);
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 3rem;
+            cursor: pointer;
+            border: 2px solid var(--border-color);
+            transition: all 0.3s ease;
+        }
+
+        .thumbnail:hover,
+        .thumbnail.active {
+            border-color: #F6A440;
+            transform: translateY(-5px);
+            box-shadow: var(--shadow-md);
+        }
+
+        /* PRODUCT INFO */
+        .product-info {
+            display: flex;
+            flex-direction: column;
+            gap: 2rem;
+        }
+
+        .info-card {
+            background: var(--white);
+            border-radius: 20px;
+            padding: 2.5rem;
+            box-shadow: var(--shadow-md);
+        }
+
+        .product-header {
+            margin-bottom: 1.5rem;
+        }
+
+        .product-category {
+            color: #F6A440;
+            font-size: 0.9rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 0.75rem;
+        }
+
+        .product-title {
+            font-size: 2.5rem;
+            font-weight: 800;
+            color: var(--text-primary);
+            line-height: 1.2;
+            margin-bottom: 1rem;
+        }
+
+        .product-rating {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .stars {
+            color: #FFC107;
+            font-size: 1.25rem;
+        }
+
+        .rating-text {
+            color: var(--text-secondary);
+            font-weight: 600;
+        }
+
+        .rating-link {
+            color: #F6A440;
+            text-decoration: none;
+            font-weight: 600;
+            margin-left: auto;
+        }
+
+        .rating-link:hover {
+            text-decoration: underline;
+        }
+
+        .price-section {
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+            padding: 2rem 0;
+            border-top: 2px solid var(--border-color);
+            border-bottom: 2px solid var(--border-color);
+        }
+
+        .current-price {
+            font-size: 3.5rem;
+            font-weight: 800;
+            background: var(--primary-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .original-price {
+            font-size: 1.5rem;
+            color: var(--text-secondary);
+            text-decoration: line-through;
+        }
+
+        .discount-badge {
+            background: #F44336;
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-weight: 700;
+            font-size: 0.95rem;
+        }
+
+        .stock-info {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-top: 1.5rem;
+        }
+
+        .stock-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.75rem 1.25rem;
+            background: #E8F5E9;
+            color: #2E7D32;
+            border-radius: 25px;
+            font-weight: 700;
+            font-size: 0.95rem;
+        }
+
+        .shipping-info {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        .product-description {
+            font-size: 1.05rem;
+            line-height: 1.8;
+            color: var(--text-secondary);
+        }
+
+        /* SPECIFICATIONS */
+        .specs-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1.5rem;
+        }
+
+        .spec-item {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .spec-label {
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-weight: 600;
+        }
+
+        .spec-value {
+            color: var(--text-primary);
+            font-weight: 700;
+            font-size: 1rem;
+        }
+
+        /* PURCHASE SECTION */
+        .purchase-section {
+            background: var(--white);
+            border-radius: 20px;
+            padding: 2.5rem;
+            box-shadow: var(--shadow-md);
+            position: sticky;
+            top: 100px;
+        }
+
+        .quantity-selector {
+            margin-bottom: 2rem;
+        }
+
+        .quantity-label {
+            font-size: 1rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 1rem;
+            display: block;
+        }
+
+        .quantity-controls {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .quantity-btn {
+            width: 56px;
+            height: 56px;
+            background: var(--secondary-light);
+            border: 2px solid var(--border-color);
+            border-radius: 14px;
+            cursor: pointer;
+            font-size: 1.75rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+            color: var(--text-primary);
+        }
+
+        .quantity-btn:hover {
+            background: var(--primary-gradient);
+            color: white;
+            border-color: transparent;
+            transform: scale(1.05);
+        }
+
+        .quantity-input {
+            width: 100px;
+            height: 56px;
+            text-align: center;
+            font-size: 1.5rem;
+            font-weight: 700;
+            border: 2px solid var(--border-color);
+            border-radius: 14px;
+            color: var(--text-primary);
+        }
+
+        .quantity-input:focus {
+            outline: none;
+            border-color: #F6A440;
+        }
+
+        .add-to-cart-btn {
+            width: 100%;
+            padding: 1.5rem;
+            background: var(--primary-gradient);
+            color: white;
+            border: none;
+            border-radius: 16px;
+            font-weight: 800;
+            font-size: 1.25rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: var(--shadow-md);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.75rem;
+            margin-bottom: 1rem;
+        }
+
+        .add-to-cart-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .buy-now-btn {
+            width: 100%;
+            padding: 1.25rem;
+            background: var(--text-primary);
+            color: white;
+            border: none;
+            border-radius: 14px;
+            font-weight: 700;
+            font-size: 1.1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-bottom: 2rem;
+        }
+
+        .buy-now-btn:hover {
+            background: #2a1f17;
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .seller-card {
+            padding-top: 2rem;
+            border-top: 2px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .seller-avatar {
+            width: 64px;
+            height: 64px;
+            background: var(--primary-gradient);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            color: white;
+            flex-shrink: 0;
+        }
+
+        .seller-info-text {
+            flex: 1;
+        }
+
+        .seller-name {
+            font-weight: 700;
+            color: var(--text-primary);
+            font-size: 1.05rem;
+            margin-bottom: 0.25rem;
+        }
+
+        .seller-rating {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        .contact-btn {
+            padding: 0.75rem 1.5rem;
+            background: white;
+            color: #F6A440;
+            border: 2px solid #F6A440;
+            border-radius: 10px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            white-space: nowrap;
+        }
+
+        .contact-btn:hover {
+            background: var(--primary-gradient);
+            color: white;
+            border-color: transparent;
+        }
+
+        /* NOTIFICATION */
+        .notification {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            background: var(--success);
+            color: white;
+            padding: 1.25rem 2rem;
+            border-radius: 16px;
+            box-shadow: var(--shadow-lg);
+            display: none;
+            align-items: center;
+            gap: 1rem;
+            font-weight: 700;
+            z-index: 1000;
+            animation: slideUp 0.3s ease;
+        }
+
+        .notification.show {
+            display: flex;
+        }
+
+        @keyframes slideUp {
+            from {
+                transform: translateY(100px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        /* RESPONSIVE */
+        @media (max-width: 1200px) {
+            .product-container {
+                grid-template-columns: 1fr;
+                gap: 2rem;
+            }
+
+            .image-gallery,
+            .purchase-section {
+                position: relative;
+                top: 0;
+            }
+
+            .main-image-container {
+                height: 500px;
+                font-size: 12rem;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .product-container {
+                padding: 1rem;
+            }
+
+            .header-content {
+                flex-wrap: wrap;
+                gap: 1rem;
+            }
+
+            .search-bar {
+                order: 3;
+                width: 100%;
+                max-width: none;
+            }
+
+            .product-title {
+                font-size: 1.75rem;
+            }
+
+            .current-price {
+                font-size: 2.5rem;
+            }
+
+            .specs-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .main-image-container {
+                height: 400px;
+                font-size: 10rem;
+            }
+
+            .image-thumbnails {
+                grid-template-columns: repeat(4, 1fr);
+            }
+
+            .info-card,
+            .purchase-section {
+                padding: 1.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- HEADER -->
+    <header>
+        <div class="header-content">
+            <div class="header-left">
+                <button class="back-button" onclick="window.history.back()">← Back</button>
+                <div class="logo">🛍️</div>
+            </div>
+            <div class="search-bar">
+                <input type="text" placeholder="Search products...">
+            </div>
+            <div class="header-icons">
+                <button class="icon-btn">❤️</button>
+                <button class="icon-btn">
+                    🛒
+                    <span class="cart-badge">3</span>
+                </button>
+                <button class="icon-btn">👤</button>
+            </div>
+        </div>
+    </header>
+
+    <!-- BREADCRUMB -->
+    <div class="breadcrumb">
+        <a href="#">Home</a> › <a href="#">Electronics</a> › <a href="#">Headphones</a> › <span>Sony WH-1000XM5</span>
+    </div>
+
+    <!-- MAIN CONTENT -->
+    <div class="product-container">
+        <!-- LEFT: IMAGE GALLERY -->
+        <div class="image-gallery">
+            <div class="main-image-container">
+                🎧
+                <span class="product-badge">✨ New Arrival</span>
+                <button class="wishlist-btn">❤️</button>
+            </div>
+            <div class="image-thumbnails">
+                <div class="thumbnail active">🎧</div>
+                <div class="thumbnail">📦</div>
+                <div class="thumbnail">🎵</div>
+                <div class="thumbnail">🔋</div>
+                <div class="thumbnail">📱</div>
+            </div>
+        </div>
+
+        <!-- RIGHT: PRODUCT INFO & PURCHASE -->
+        <div class="product-info">
+            <!-- PRODUCT DETAILS -->
+            <div class="info-card">
+                <div class="product-header">
+                    <div class="product-category">Electronics • Audio</div>
+                    <h1 class="product-title">Sony WH-1000XM5 Wireless Noise Canceling Headphones</h1>
+                    <div class="product-rating">
+                        <div class="stars">⭐⭐⭐⭐⭐</div>
+                        <span class="rating-text">4.8 out of 5</span>
+                        <a href="#reviews" class="rating-link">(1,234 reviews)</a>
+                    </div>
+                </div>
+
+                <div class="price-section">
+                    <div class="current-price">$299.99</div>
+                    <div class="original-price">$399.99</div>
+                    <div class="discount-badge">-25%</div>
+                </div>
+
+                <div class="stock-info">
+                    <div class="stock-badge">✓ In Stock</div>
+                    <div class="shipping-info">🚚 Free shipping • Arrives in 2-3 days</div>
+                </div>
+
+                <p class="product-description">
+                    Experience industry-leading noise cancellation with the Sony WH-1000XM5. These premium wireless headphones feature cutting-edge technology with two processors controlling 8 microphones for unprecedented noise canceling quality. With up to 30 hours of battery life, exceptional sound quality with LDAC and DSEE Extreme support, and supremely comfortable design with soft fit leather, these headphones are perfect for travel, work, and everyday listening. The specially designed driver unit delivers incredibly clear vocals and natural sound across all frequencies.
+                </p>
+            </div>
+
+            <!-- SPECIFICATIONS -->
+            <div class="info-card">
+                <h2 style="font-size: 1.5rem; font-weight: 800; margin-bottom: 1.5rem;">Product Specifications</h2>
+                <div class="specs-grid">
+                    <div class="spec-item">
+                        <span class="spec-label">Brand</span>
+                        <span class="spec-value">Sony</span>
+                    </div>
+                    <div class="spec-item">
+                        <span class="spec-label">Model</span>
+                        <span class="spec-value">WH-1000XM5</span>
+                    </div>
+                    <div class="spec-item">
+                        <span class="spec-label">Connectivity</span>
+                        <span class="spec-value">Bluetooth 5.2, NFC</span>
+                    </div>
+                    <div class="spec-item">
+                        <span class="spec-label">Battery Life</span>
+                        <span class="spec-value">Up to 30 hours</span>
+                    </div>
+                    <div class="spec-item">
+                        <span class="spec-label">Charging Time</span>
+                        <span class="spec-value">3.5 hours (USB-C)</span>
+                    </div>
+                    <div class="spec-item">
+                        <span class="spec-label">Weight</span>
+                        <span class="spec-value">250g (8.8 oz)</span>
+                    </div>
+                    <div class="spec-item">
+                        <span class="spec-label">Noise Cancellation</span>
+                        <span class="spec-value">Active (8 mics)</span>
+                    </div>
+                    <div class="spec-item">
+                        <span class="spec-label">Condition</span>
+                        <span class="spec-value">Brand New, Sealed</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- PURCHASE SECTION -->
+            <div class="purchase-section">
+                <div class="quantity-selector">
+                    <label class="quantity-label">Quantity</label>
+                    <div class="quantity-controls">
+                        <button class="quantity-btn" onclick="decreaseQuantity()">−</button>
+                        <input type="number" class="quantity-input" id="quantity" value="1" min="1" max="10" readonly>
+                        <button class="quantity-btn" onclick="increaseQuantity()">+</button>
+                    </div>
+                </div>
+
+                <button class="add-to-cart-btn" onclick="addToCart()">
+                    🛒 Add to Cart
+                </button>
+
+                <button class="buy-now-btn">
+                    ⚡ Buy Now
+                </button>
+
+                <div class="seller-card">
+                    <div class="seller-avatar">🏪</div>
+                    <div class="seller-info-text">
+                        <div class="seller-name">Tech Store Official</div>
+                        <div class="seller-rating">⭐ 4.9 • 2,341 sales • 98% positive</div>
+                    </div>
+                    <button class="contact-btn">💬 Chat</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- NOTIFICATION -->
+    <div class="notification" id="notification">
+        <span style="font-size: 1.75rem;">✓</span>
+        <div>
+            <div style="font-size: 1.1rem;">Added to cart!</div>
+            <div style="font-size: 0.9rem; opacity: 0.9;">Sony WH-1000XM5 (Qty: <span id="notif-qty">1</span>)</div>
+        </div>
+    </div>
+
+    <script>
+        function increaseQuantity() {
+            const input = document.getElementById('quantity');
+            const currentValue = parseInt(input.value);
+            if (currentValue < 10) {
+                input.value = currentValue + 1;
+            }
+        }
+
+        function decreaseQuantity() {
+            const input = document.getElementById('quantity');
+            const currentValue = parseInt(input.value);
+            if (currentValue > 1) {
+                input.value = currentValue - 1;
+            }
+        }
+
+        function addToCart() {
+            const quantity = document.getElementById('quantity').value;
+            const notification = document.getElementById('notification');
+            const notifQty = document.getElementById('notif-qty');
+            
+            notifQty.textContent = quantity;
+            notification.classList.add('show');
+            
+            setTimeout(() => {
+                notification.classList.remove('show');
+            }, 3500);
+            
+            console.log(`Added ${quantity} item(s) to cart`);
+        }
+
+        // Thumbnail functionality
+        document.querySelectorAll('.thumbnail').forEach((thumb, index) => {
+            thumb.addEventListener('click', function() {
+                document.querySelectorAll('.thumbnail').forEach(t => t.classList.remove('active'));
+                this.classList.add('active');
+            });
+        });
+    </script>
+</body>
+</html>

@@ -33,6 +33,14 @@ public class ProductMapper {
                     .map(ProductImage::getImageUrl)
                     .collect(Collectors.toList()));
         }
+        if (product.getShippingOptions() != null) {
+            dto.setShippingOptions(product.getShippingOptions().stream()
+                    .map(ps -> new ProductResponse.ShippingOptionDto(
+                            ps.getShippingOption().getName(),
+                            ps.getPrice()
+                    ))
+                    .collect(Collectors.toList()));
+        }
         return dto;
     }
 }

@@ -28,6 +28,12 @@ public class Order {
     @Column(name = "total_amount", nullable = false)
     private BigDecimal totalAmount;
 
+    @Column(name = "shipping_method")
+    private String shippingMethod;
+
+    @Column(name = "shipping_price")
+    private BigDecimal shippingPrice;
+
     @JsonManagedReference
     @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
     private Set<OrderItem> items;
@@ -118,6 +124,22 @@ public class Order {
 
     public void setUpdatedAt(Instant updatedAt) {
         this.updatedAt = updatedAt;
+    }
+
+    public String getShippingMethod() {
+        return shippingMethod;
+    }
+
+    public void setShippingMethod(String shippingMethod) {
+        this.shippingMethod = shippingMethod;
+    }
+
+    public BigDecimal getShippingPrice() {
+        return shippingPrice;
+    }
+
+    public void setShippingPrice(BigDecimal shippingPrice) {
+        this.shippingPrice = shippingPrice;
     }
 // Getters and Setters...
 }

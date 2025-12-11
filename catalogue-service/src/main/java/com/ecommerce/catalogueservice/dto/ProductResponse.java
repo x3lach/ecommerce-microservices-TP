@@ -19,6 +19,25 @@ public class ProductResponse {
     private String brandName;
     private Instant createdAt;
     private Instant updatedAt;
+    private List<ShippingOptionDto> shippingOptions;
+
+    // Inner class for shipping options
+    public static class ShippingOptionDto {
+        private String name;
+        private BigDecimal price;
+
+        public ShippingOptionDto() {}
+
+        public ShippingOptionDto(String name, BigDecimal price) {
+            this.name = name;
+            this.price = price;
+        }
+
+        public String getName() { return name; }
+        public void setName(String name) { this.name = name; }
+        public BigDecimal getPrice() { return price; }
+        public void setPrice(BigDecimal price) { this.price = price; }
+    }
 
     // Getters and Setters
     public UUID getId() {
@@ -101,7 +120,7 @@ public class ProductResponse {
         this.brandName = brandName;
     }
 
-     public Instant getCreatedAt() {
+    public Instant getCreatedAt() {
         return createdAt;
     }
 
@@ -115,5 +134,13 @@ public class ProductResponse {
 
     public void setUpdatedAt(Instant updatedAt) {
         this.updatedAt = updatedAt;
+    }
+
+    public List<ShippingOptionDto> getShippingOptions() {
+        return shippingOptions;
+    }
+
+    public void setShippingOptions(List<ShippingOptionDto> shippingOptions) {
+        this.shippingOptions = shippingOptions;
     }
 }

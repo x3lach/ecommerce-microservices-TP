@@ -1,6 +1,3 @@
-
-
-
 import React from 'react';
 
 
@@ -27,6 +24,8 @@ import MainPage from './pages/MainPage';
 
 import ProfilePage from './pages/ProfilePage';
 import MyItemsPage from './pages/MyItemsPage';
+import ProductPage from './pages/ProductPage';
+import CheckoutPage from './pages/CheckoutPage';
 
 
 
@@ -70,6 +69,10 @@ function App() {
 
 
 
+                    <Route path="/product/:id" element={<ProductPage />} />
+
+
+
                     <Route element={<ProtectedRoute />}>
 
 
@@ -80,6 +83,7 @@ function App() {
 
                         <Route path="/profile" element={<ProfilePage />} />
                         <Route path="/my-items" element={<MyItemsPage />} />
+                        <Route path="/checkout" element={<CheckoutPage />} />
 
 
 
