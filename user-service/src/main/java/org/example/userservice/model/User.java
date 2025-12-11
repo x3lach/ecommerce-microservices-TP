@@ -5,6 +5,8 @@ package org.example.userservice.model;
 import jakarta.persistence.*;
 import lombok.*;
 
+import lombok.ToString;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -42,5 +44,6 @@ public class User {
 
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
+    @ToString.Exclude
     private List<Address> addresses = new ArrayList<>();
 }

@@ -1,0 +1,815 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>List Your Item - SABT Marketplace</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary-gradient: linear-gradient(135deg, #F6A440 0%, #D46A1C 100%);
+            --secondary-light: #FCE3C1;
+            --white: #FFFFFF;
+            --text-primary: #3B2B20;
+            --text-secondary: #6B5B50;
+            --border-color: #E8DED0;
+            --shadow-sm: 0 2px 8px rgba(212, 106, 28, 0.08);
+            --shadow-md: 0 4px 16px rgba(212, 106, 28, 0.12);
+            --shadow-lg: 0 8px 24px rgba(212, 106, 28, 0.16);
+            --success: #4CAF50;
+            --error: #F44336;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(180deg, #FFFBF5 0%, #FFF8ED 100%);
+            color: var(--text-primary);
+            min-height: 100vh;
+        }
+
+        /* HEADER */
+        header {
+            background: var(--white);
+            padding: 1.5rem 2rem;
+            box-shadow: var(--shadow-sm);
+            margin-bottom: 2rem;
+        }
+
+        .header-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .back-button {
+            background: var(--secondary-light);
+            border: none;
+            padding: 0.75rem 1rem;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: all 0.3s ease;
+            color: var(--text-primary);
+            font-weight: 600;
+        }
+
+        .back-button:hover {
+            background: var(--primary-gradient);
+            color: white;
+            transform: translateX(-3px);
+        }
+
+        .header-title {
+            font-size: 1.75rem;
+            font-weight: 800;
+            color: var(--text-primary);
+        }
+
+        .save-draft-btn {
+            background: white;
+            border: 2px solid var(--border-color);
+            padding: 0.75rem 1.5rem;
+            border-radius: 10px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            color: var(--text-primary);
+        }
+
+        .save-draft-btn:hover {
+            border-color: #F6A440;
+            background: var(--secondary-light);
+        }
+
+        /* MAIN CONTAINER */
+        .sell-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 2rem 3rem;
+            display: grid;
+            grid-template-columns: 1fr 400px;
+            gap: 2rem;
+        }
+
+        /* FORM SECTION */
+        .form-section {
+            background: var(--white);
+            border-radius: 20px;
+            padding: 2rem;
+            box-shadow: var(--shadow-md);
+        }
+
+        .section-title {
+            font-size: 1.25rem;
+            font-weight: 800;
+            color: var(--text-primary);
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .section-description {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            margin-bottom: 1.5rem;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 0.5rem;
+        }
+
+        .required {
+            color: #F44336;
+            margin-left: 0.25rem;
+        }
+
+        .form-input,
+        .form-select,
+        .form-textarea {
+            width: 100%;
+            padding: 0.875rem 1rem;
+            border: 2px solid var(--border-color);
+            border-radius: 12px;
+            font-size: 0.95rem;
+            transition: all 0.3s ease;
+            background: var(--white);
+            color: var(--text-primary);
+            font-family: inherit;
+        }
+
+        .form-input:focus,
+        .form-select:focus,
+        .form-textarea:focus {
+            outline: none;
+            border-color: #F6A440;
+            box-shadow: 0 0 0 3px rgba(246, 164, 64, 0.1);
+        }
+
+        .form-textarea {
+            resize: vertical;
+            min-height: 120px;
+        }
+
+        .char-count {
+            text-align: right;
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            margin-top: 0.25rem;
+        }
+
+        /* IMAGE UPLOAD */
+        .image-upload-area {
+            border: 3px dashed var(--border-color);
+            border-radius: 16px;
+            padding: 3rem 2rem;
+            text-align: center;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            background: #FAFAFA;
+        }
+
+        .image-upload-area:hover {
+            border-color: #F6A440;
+            background: var(--secondary-light);
+        }
+
+        .upload-icon {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+        }
+
+        .upload-text {
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 0.5rem;
+        }
+
+        .upload-subtext {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+
+        .image-preview-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .image-preview-item {
+            position: relative;
+            aspect-ratio: 1;
+            border-radius: 12px;
+            background: var(--secondary-light);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 3rem;
+            border: 2px solid var(--border-color);
+        }
+
+        .remove-image {
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            width: 28px;
+            height: 28px;
+            background: #F44336;
+            color: white;
+            border-radius: 50%;
+            border: 2px solid white;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+            box-shadow: var(--shadow-md);
+        }
+
+        /* PRICE INPUT */
+        .price-input-wrapper {
+            position: relative;
+        }
+
+        .price-input-wrapper::before {
+            content: '$';
+            position: absolute;
+            left: 1rem;
+            top: 50%;
+            transform: translateY(-50%);
+            font-weight: 700;
+            color: var(--text-secondary);
+            font-size: 1.1rem;
+        }
+
+        .price-input {
+            padding-left: 2.5rem;
+            font-weight: 600;
+            font-size: 1.1rem;
+        }
+
+        /* CONDITION SELECTOR */
+        .condition-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1rem;
+        }
+
+        .condition-option {
+            padding: 1rem;
+            border: 2px solid var(--border-color);
+            border-radius: 12px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: white;
+        }
+
+        .condition-option:hover {
+            border-color: #F6A440;
+            background: var(--secondary-light);
+        }
+
+        .condition-option.selected {
+            border-color: #F6A440;
+            background: var(--primary-gradient);
+            color: white;
+        }
+
+        .condition-icon {
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .condition-label {
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+
+        /* SHIPPING OPTIONS */
+        .shipping-option {
+            padding: 1rem;
+            border: 2px solid var(--border-color);
+            border-radius: 12px;
+            margin-bottom: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .shipping-option:hover {
+            border-color: #F6A440;
+            background: var(--secondary-light);
+        }
+
+        .shipping-option.selected {
+            border-color: #F6A440;
+            background: linear-gradient(135deg, rgba(246, 164, 64, 0.1), rgba(212, 106, 28, 0.1));
+        }
+
+        .shipping-radio {
+            width: 24px;
+            height: 24px;
+            border: 2px solid var(--border-color);
+            border-radius: 50%;
+            position: relative;
+            transition: all 0.3s ease;
+        }
+
+        .shipping-option.selected .shipping-radio {
+            border-color: #F6A440;
+            background: var(--primary-gradient);
+        }
+
+        .shipping-option.selected .shipping-radio::after {
+            content: '✓';
+            position: absolute;
+            color: white;
+            font-weight: 700;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 0.875rem;
+        }
+
+        .shipping-info {
+            flex: 1;
+        }
+
+        .shipping-title {
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 0.25rem;
+        }
+
+        .shipping-desc {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+
+        .shipping-price {
+            font-weight: 700;
+            color: #F6A440;
+        }
+
+        /* PREVIEW SIDEBAR */
+        .preview-sidebar {
+            position: sticky;
+            top: 2rem;
+            height: fit-content;
+        }
+
+        .preview-card {
+            background: var(--white);
+            border-radius: 20px;
+            padding: 2rem;
+            box-shadow: var(--shadow-md);
+            margin-bottom: 1.5rem;
+        }
+
+        .preview-title {
+            font-size: 1.1rem;
+            font-weight: 800;
+            color: var(--text-primary);
+            margin-bottom: 1.5rem;
+        }
+
+        .preview-image {
+            width: 100%;
+            aspect-ratio: 1;
+            background: var(--secondary-light);
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 5rem;
+            margin-bottom: 1rem;
+            border: 2px solid var(--border-color);
+        }
+
+        .preview-product-title {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 0.5rem;
+        }
+
+        .preview-category {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 1rem;
+        }
+
+        .preview-price {
+            font-size: 2rem;
+            font-weight: 800;
+            background: var(--primary-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 1rem;
+        }
+
+        .preview-description {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            line-height: 1.6;
+            margin-bottom: 1rem;
+        }
+
+        .preview-condition {
+            display: inline-block;
+            padding: 0.5rem 1rem;
+            background: var(--secondary-light);
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        /* TIPS CARD */
+        .tips-card {
+            background: linear-gradient(135deg, rgba(246, 164, 64, 0.1), rgba(212, 106, 28, 0.1));
+            border: 2px solid #F6A440;
+            border-radius: 16px;
+            padding: 1.5rem;
+        }
+
+        .tips-title {
+            font-size: 1rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .tips-list {
+            list-style: none;
+        }
+
+        .tips-list li {
+            padding: 0.5rem 0;
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+            display: flex;
+            align-items: flex-start;
+            gap: 0.5rem;
+        }
+
+        .tips-list li::before {
+            content: '✓';
+            color: #F6A440;
+            font-weight: 700;
+            flex-shrink: 0;
+        }
+
+        /* SUBMIT BUTTON */
+        .submit-section {
+            background: var(--white);
+            border-radius: 20px;
+            padding: 2rem;
+            box-shadow: var(--shadow-md);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .terms-text {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            flex: 1;
+        }
+
+        .terms-text a {
+            color: #F6A440;
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        .submit-button {
+            padding: 1rem 3rem;
+            background: var(--primary-gradient);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-weight: 700;
+            font-size: 1.05rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: var(--shadow-md);
+            white-space: nowrap;
+        }
+
+        .submit-button:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .submit-button:active {
+            transform: translateY(0);
+        }
+
+        /* RESPONSIVE */
+        @media (max-width: 1024px) {
+            .sell-container {
+                grid-template-columns: 1fr;
+            }
+
+            .preview-sidebar {
+                position: relative;
+                top: 0;
+            }
+
+            .condition-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 768px) {
+            .sell-container {
+                padding: 0 1rem 2rem;
+            }
+
+            .condition-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .submit-section {
+                flex-direction: column;
+            }
+
+            .submit-button {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- HEADER -->
+    <header>
+        <div class="header-content">
+            <div class="header-left">
+                <button class="back-button" onclick="window.history.back()">
+                    ← Back
+                </button>
+                <h1 class="header-title">List Your Item</h1>
+            </div>
+            <button class="save-draft-btn">💾 Save Draft</button>
+        </div>
+    </header>
+
+    <!-- MAIN CONTAINER -->
+    <div class="sell-container">
+        <!-- FORM SECTION -->
+        <div>
+            <!-- PHOTOS SECTION -->
+            <section class="form-section" style="margin-bottom: 2rem;">
+                <h2 class="section-title">📸 Photos</h2>
+                <p class="section-description">Add up to 8 photos. First photo will be the cover image.</p>
+
+                <div class="image-upload-area">
+                    <div class="upload-icon">📷</div>
+                    <div class="upload-text">Click to upload or drag and drop</div>
+                    <div class="upload-subtext">PNG, JPG up to 10MB each</div>
+                </div>
+
+                <div class="image-preview-grid">
+                    <div class="image-preview-item">
+                        📦
+                        <button class="remove-image">×</button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- BASIC INFO SECTION -->
+            <section class="form-section" style="margin-bottom: 2rem;">
+                <h2 class="section-title">📝 Basic Information</h2>
+                <p class="section-description">Tell us about your item</p>
+
+                <div class="form-group">
+                    <label class="form-label">Title<span class="required">*</span></label>
+                    <input type="text" class="form-input" placeholder="e.g., iPhone 13 Pro Max 256GB" maxlength="80">
+                    <div class="char-count">0 / 80</div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Category<span class="required">*</span></label>
+                    <select class="form-select">
+                        <option>Select a category</option>
+                        <option>Electronics</option>
+                        <option>Fashion</option>
+                        <option>Home & Garden</option>
+                        <option>Sports & Outdoors</option>
+                        <option>Toys & Games</option>
+                        <option>Books & Media</option>
+                        <option>Automotive</option>
+                        <option>Other</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Description<span class="required">*</span></label>
+                    <textarea class="form-textarea" placeholder="Describe your item in detail. Include condition, features, and any defects..." maxlength="1000"></textarea>
+                    <div class="char-count">0 / 1000</div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Condition<span class="required">*</span></label>
+                    <div class="condition-grid">
+                        <div class="condition-option selected">
+                            <div class="condition-icon">✨</div>
+                            <div class="condition-label">New</div>
+                        </div>
+                        <div class="condition-option">
+                            <div class="condition-icon">👌</div>
+                            <div class="condition-label">Like New</div>
+                        </div>
+                        <div class="condition-option">
+                            <div class="condition-icon">👍</div>
+                            <div class="condition-label">Good</div>
+                        </div>
+                        <div class="condition-option">
+                            <div class="condition-icon">👎</div>
+                            <div class="condition-label">Fair</div>
+                        </div>
+                        <div class="condition-option">
+                            <div class="condition-icon">🔧</div>
+                            <div class="condition-label">Poor</div>
+                        </div>
+                        <div class="condition-option">
+                            <div class="condition-icon">📦</div>
+                            <div class="condition-label">For Parts</div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- PRICING SECTION -->
+            <section class="form-section" style="margin-bottom: 2rem;">
+                <h2 class="section-title">💰 Pricing</h2>
+                <p class="section-description">Set your price and shipping options</p>
+
+                <div class="form-group">
+                    <label class="form-label">Price<span class="required">*</span></label>
+                    <div class="price-input-wrapper">
+                        <input type="number" class="form-input price-input" placeholder="0.00" step="0.01" min="0">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Quantity<span class="required">*</span></label>
+                    <input type="number" class="form-input" placeholder="1" min="1" value="1">
+                </div>
+            </section>
+
+            <!-- SHIPPING SECTION -->
+            <section class="form-section" style="margin-bottom: 2rem;">
+                <h2 class="section-title">🚚 Shipping</h2>
+                <p class="section-description">Choose how you'll ship the item</p>
+
+                <div class="shipping-option selected">
+                    <div class="shipping-radio"></div>
+                    <div class="shipping-info">
+                        <div class="shipping-title">Standard Shipping</div>
+                        <div class="shipping-desc">Delivery in 5-7 business days</div>
+                    </div>
+                    <div class="shipping-price">Free</div>
+                </div>
+
+                <div class="shipping-option">
+                    <div class="shipping-radio"></div>
+                    <div class="shipping-info">
+                        <div class="shipping-title">Express Shipping</div>
+                        <div class="shipping-desc">Delivery in 2-3 business days</div>
+                    </div>
+                    <div class="shipping-price">$9.99</div>
+                </div>
+
+                <div class="shipping-option">
+                    <div class="shipping-radio"></div>
+                    <div class="shipping-info">
+                        <div class="shipping-title">Local Pickup</div>
+                        <div class="shipping-desc">Buyer picks up the item</div>
+                    </div>
+                    <div class="shipping-price">Free</div>
+                </div>
+
+                <div class="form-group" style="margin-top: 1.5rem;">
+                    <label class="form-label">Item Weight (lbs)</label>
+                    <input type="number" class="form-input" placeholder="0.0" step="0.1" min="0">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Package Dimensions (L × W × H inches)</label>
+                    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.75rem;">
+                        <input type="number" class="form-input" placeholder="Length" min="0">
+                        <input type="number" class="form-input" placeholder="Width" min="0">
+                        <input type="number" class="form-input" placeholder="Height" min="0">
+                    </div>
+                </div>
+            </section>
+
+            <!-- SUBMIT SECTION -->
+            <section class="submit-section">
+                <p class="terms-text">
+                    By listing this item, you agree to our <a href="#">Seller Terms</a> and <a href="#">Fees Policy</a>
+                </p>
+                <button class="submit-button">🚀 List Item</button>
+            </section>
+        </div>
+
+        <!-- PREVIEW SIDEBAR -->
+        <aside class="preview-sidebar">
+            <div class="preview-card">
+                <h3 class="preview-title">Preview</h3>
+                <div class="preview-image">📦</div>
+                <h4 class="preview-product-title">Your Item Title</h4>
+                <p class="preview-category">Category</p>
+                <div class="preview-price">$0.00</div>
+                <p class="preview-description">
+                    Your description will appear here. Add details about your item to help buyers make a decision.
+                </p>
+                <span class="preview-condition">Condition: New</span>
+            </div>
+
+            <div class="tips-card">
+                <div class="tips-title">💡 Listing Tips</div>
+                <ul class="tips-list">
+                    <li>Use clear, well-lit photos from multiple angles</li>
+                    <li>Write detailed, honest descriptions</li>
+                    <li>Research similar items for competitive pricing</li>
+                    <li>Mention any defects or wear clearly</li>
+                    <li>Respond to buyer questions quickly</li>
+                    <li>Ship items promptly after purchase</li>
+                </ul>
+            </div>
+        </aside>
+    </div>
+
+    <script>
+        // Condition selector
+        document.querySelectorAll('.condition-option').forEach(option => {
+            option.addEventListener('click', function() {
+                document.querySelectorAll('.condition-option').forEach(o => o.classList.remove('selected'));
+                this.classList.add('selected');
+            });
+        });
+
+        // Shipping option selector
+        document.querySelectorAll('.shipping-option').forEach(option => {
+            option.addEventListener('click', function() {
+                document.querySelectorAll('.shipping-option').forEach(o => o.classList.remove('selected'));
+                this.classList.add('selected');
+            });
+        });
+
+        // Character counter
+        document.querySelectorAll('input[maxlength], textarea[maxlength]').forEach(input => {
+            const updateCount = () => {
+                const counter = input.nextElementSibling;
+                if (counter && counter.classList.contains('char-count')) {
+                    const current = input.value.length;
+                    const max = input.getAttribute('maxlength');
+                    counter.textContent = `${current} / ${max}`;
+                }
+            };
+            
+            input.addEventListener('input', updateCount);
+            updateCount();
+        });
+    </script>
+</body>
+</html>

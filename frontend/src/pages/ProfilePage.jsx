@@ -17,6 +17,7 @@ const ProfilePage = () => {
     const { user } = useContext(AuthContext);
     const [userDetails, setUserDetails] = useState(null);
     const [orders, setOrders] = useState([]);
+    const [sellerProducts, setSellerProducts] = useState([]);
     const [editableFields, setEditableFields] = useState({
         phone: '',
     });
@@ -133,7 +134,25 @@ const ProfilePage = () => {
                 }
             }
         };
+
+        const fetchSellerProducts = async () => {
+            if (user) {
+                try {
+                    const response = await fetch(`http://localhost:8081/api/v1/products/seller/${user.id}`);
+                    if (response.ok) {
+                        const products = await response.json();
+                        setSellerProducts(products);
+                    } else {
+                        console.error('Failed to fetch seller products');
+                    }
+                } catch (error) {
+                    console.error('Error fetching seller products:', error);
+                }
+            }
+        };
+
         fetchOrders();
+        fetchSellerProducts();
     }, [user, fetchAllData]);
 
     const handleFieldChange = (field, value) => {
@@ -416,7 +435,11 @@ const ProfilePage = () => {
                         <div className={`profile-dropdown ${profileDropdownActive ? 'active' : ''}`} id="profileDropdown">
                                                     <button className="dropdown-item" onClick={() => navigate('/profile')}>
                                                         <span>View Profile</span>
-                                                    </button>                            <button className="dropdown-item logout" onClick={handleLogout}>
+                                                    </button>
+                                                    <button className="dropdown-item" onClick={() => navigate('/my-items')}>
+                                                        <span>My Items</span>
+                                                    </button>
+                                                    <button className="dropdown-item logout" onClick={handleLogout}>
                                 <span>Logout</span>
                             </button>
                         </div>
@@ -471,7 +494,14 @@ const ProfilePage = () => {
                             </div>
                              <div className="info-item">
                                 <label className="info-label">Role</label>
-                                <div className="info-value">{userDetails.role}</div>
+                                <div className="info-value">
+                                    {sellerProducts.length >= 1 ? 'Seller' : 'Client'}
+                                    {sellerProducts.length >= 1 && (
+                                        <span style={{ fontSize: '0.85em', color: '#666', marginLeft: '8px' }}>
+                                            ({sellerProducts.length} product{sellerProducts.length > 1 ? 's' : ''} for sale)
+                                        </span>
+                                    )}
+                                </div>
                             </div>
                         </div>
                     </section>

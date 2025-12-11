@@ -4,6 +4,8 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 @Entity
@@ -13,6 +15,12 @@ public class Product {
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
     private UUID id;
+
+    @Column(name = "seller_id")
+    private UUID sellerId;
+
+    @OneToMany(mappedBy = "product", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<ProductImage> images = new ArrayList<>();
 
     @Column(unique = true, nullable = false, length = 50)
     private String sku;
@@ -47,6 +55,21 @@ public class Product {
 
     @Column(name = "updated_at")
     private Instant updatedAt = Instant.now();
+
+    @Column(name = "weight", scale = 2)
+    private BigDecimal weight;
+
+    @Column(name = "package_length", scale = 2)
+    private BigDecimal packageLength;
+
+    @Column(name = "package_width", scale = 2)
+    private BigDecimal packageWidth;
+
+    @Column(name = "package_height", scale = 2)
+    private BigDecimal packageHeight;
+
+    @OneToMany(mappedBy = "product", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<ProductShipping> shippingOptions = new ArrayList<>();
 
     // Add @PreUpdate method to update 'updatedAt'
     @PreUpdate
@@ -140,5 +163,61 @@ public class Product {
 
     public void setUpdatedAt(Instant updatedAt) {
         this.updatedAt = updatedAt;
+    }
+
+    public List<ProductImage> getImages() {
+        return images;
+    }
+
+    public void setImages(List<ProductImage> images) {
+        this.images = images;
+    }
+
+    public BigDecimal getWeight() {
+        return weight;
+    }
+
+    public void setWeight(BigDecimal weight) {
+        this.weight = weight;
+    }
+
+    public BigDecimal getPackageLength() {
+        return packageLength;
+    }
+
+    public void setPackageLength(BigDecimal packageLength) {
+        this.packageLength = packageLength;
+    }
+
+    public BigDecimal getPackageWidth() {
+        return packageWidth;
+    }
+
+    public void setPackageWidth(BigDecimal packageWidth) {
+        this.packageWidth = packageWidth;
+    }
+
+    public BigDecimal getPackageHeight() {
+        return packageHeight;
+    }
+
+    public void setPackageHeight(BigDecimal packageHeight) {
+        this.packageHeight = packageHeight;
+    }
+
+    public List<ProductShipping> getShippingOptions() {
+        return shippingOptions;
+    }
+
+    public void setShippingOptions(List<ProductShipping> shippingOptions) {
+        this.shippingOptions = shippingOptions;
+    }
+
+    public UUID getSellerId() {
+        return sellerId;
+    }
+
+    public void setSellerId(UUID sellerId) {
+        this.sellerId = sellerId;
     }
 }

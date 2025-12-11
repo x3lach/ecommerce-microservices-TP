@@ -8,5 +8,4 @@ import java.util.UUID;
 
 @Repository
 public interface BrandRepository extends JpaRepository<Brand, UUID> {
-    // JpaRepository gives us everything we need for now
 }

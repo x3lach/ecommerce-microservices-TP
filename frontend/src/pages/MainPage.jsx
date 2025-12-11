@@ -15,9 +15,31 @@ const getInitials = (fullName) => {
 const MainPage = () => {
     const [sidebarHidden, setSidebarHidden] = useState(false);
     const [profileDropdownActive, setProfileDropdownActive] = useState(false);
+    const [products, setProducts] = useState([]);
+    const [loading, setLoading] = useState(true);
     const navigate = useNavigate();
     const { user } = useContext(AuthContext);
     const [userDetails, setUserDetails] = useState(null);
+
+    // Fetch products from database
+    useEffect(() => {
+        const fetchProducts = async () => {
+            try {
+                const response = await fetch('http://localhost:8081/api/v1/products');
+                if (response.ok) {
+                    const data = await response.json();
+                    setProducts(data);
+                } else {
+                    console.error('Failed to fetch products');
+                }
+            } catch (error) {
+                console.error('Error fetching products:', error);
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchProducts();
+    }, []);
 
     useEffect(() => {
         if (user) {
@@ -97,7 +119,11 @@ const MainPage = () => {
                         <div className={`profile-dropdown ${profileDropdownActive ? 'active' : ''}`} id="profileDropdown">
                                                     <button className="dropdown-item" onClick={() => navigate('/profile')}>
                                                         <span>View Profile</span>
-                                                    </button>                            <button className="dropdown-item logout" onClick={handleLogout}>
+                                                    </button>
+                                                    <button className="dropdown-item" onClick={() => navigate('/my-items')}>
+                                                        <span>My Items</span>
+                                                    </button>
+                                                    <button className="dropdown-item logout" onClick={handleLogout}>
                                 <span>Logout</span>
                             </button>
                         </div>
@@ -165,183 +191,51 @@ const MainPage = () => {
                 <main className={`content ${sidebarHidden ? 'expanded' : ''}`} id="content">
                     <div className="content-header">
                         <h1 className="content-title">Discover Products</h1>
-                        <p className="results-info">Showing 12 products</p>
+                        <p className="results-info">
+                            {loading ? 'Loading...' : `Showing ${products.length} product${products.length !== 1 ? 's' : ''}`}
+                        </p>
                     </div>
 
                     <div className="products-grid">
-                        <article className="product-card">
-                            <div className="product-image">
-                                <span>🎧</span>
-                                <span className="product-tag">NEW</span>
-                            </div>
-                            <div className="product-info">
-                                <p className="product-category">Electronics</p>
-                                <h3 className="product-title">Wireless Headphones Pro</h3>
-                                <div className="product-footer">
-                                    <span className="product-price">$89.99</span>
-                                    <div className="product-icon">🏷️</div>
-                                </div>
-                            </div>
-                        </article>
-
-                        <article className="product-card">
-                            <div className="product-image">
-                                <span>⌚</span>
-                                <span className="product-tag">HOT</span>
-                            </div>
-                            <div className="product-info">
-                                <p className="product-category">Electronics</p>
-                                <h3 className="product-title">Smart Watch Ultra</h3>
-                                <div className="product-footer">
-                                    <span className="product-price">$299.99</span>
-                                    <div className="product-icon">🏷️</div>
-                                </div>
-                            </div>
-                        </article>
-
-                        <article className="product-card">
-                            <div className="product-image">
-                                <span>👕</span>
-                            </div>
-                            <div className="product-info">
-                                <p className="product-category">Fashion</p>
-                                <h3 className="product-title">Premium Cotton T-Shirt</h3>
-                                <div className="product-footer">
-                                    <span className="product-price">$29.99</span>
-                                    <div className="product-icon">🏷️</div>
-                                </div>
-                            </div>
-                        </article>
-
-                        <article className="product-card">
-                            <div className="product-image">
-                                <span>👟</span>
-                                <span className="product-tag">SALE</span>
-                            </div>
-                            <div className="product-info">
-                                <p className="product-category">Sports</p>
-                                <h3 className="product-title">Running Shoes Elite</h3>
-                                <div className="product-footer">
-                                    <span className="product-price">$79.99</span>
-                                    <div className="product-icon">🏷️</div>
-                                </div>
-                            </div>
-                        </article>
-
-                        <article className="product-card">
-                            <div className="product-image">
-                                <span>☕</span>
-                            </div>
-                            <div className="product-info">
-                                <p className="product-category">Home & Garden</p>
-                                <h3 className="product-title">Coffee Maker Deluxe</h3>
-                                <div className="product-footer">
-                                    <span className="product-price">$49.99</span>
-                                    <div className="product-icon">🏷️</div>
-                                </div>
-                            </div>
-                        </article>
-
-                        <article className="product-card">
-                            <div className="product-image">
-                                <span>🎮</span>
-                                <span className="product-tag">NEW</span>
-                            </div>
-                            <div className="product-info">
-                                <p className="product-category">Electronics</p>
-                                <h3 className="product-title">Gaming Console Pro</h3>
-                                <div className="product-footer">
-                                    <span className="product-price">$499.99</span>
-                                    <div className="product-icon">🏷️</div>
-                                </div>
-                            </div>
-                        </article>
-
-                        <article className="product-card">
-                            <div className="product-image">
-                                <span>🎒</span>
-                            </div>
-                            <div className="product-info">
-                                <p className="product-category">Accessories</p>
-                                <h3 className="product-title">Travel Backpack</h3>
-                                <div className="product-footer">
-                                    <span className="product-price">$59.99</span>
-                                    <div className="product-icon">🏷️</div>
-                                </div>
-                            </div>
-                        </article>
-
-                        <article className="product-card">
-                            <div className="product-image">
-                                <span>💡</span>
-                            </div>
-                            <div className="product-info">
-                                <p className="product-category">Home & Garden</p>
-                                <h3 className="product-title">Smart LED Desk Lamp</h3>
-                                <div className="product-footer">
-                                    <span className="product-price">$39.99</span>
-                                    <div className="product-icon">🏷️</div>
-                                </div>
-                            </div>
-                        </article>
-
-                        <article className="product-card">
-                            <div className="product-image">
-                                <span>📷</span>
-                                <span className="product-tag">HOT</span>
-                            </div>
-                            <div className="product-info">
-                                <p className="product-category">Electronics</p>
-                                <h3 className="product-title">Digital Camera 4K</h3>
-                                <div className="product-footer">
-                                    <span className="product-price">$699.99</span>
-                                    <div className="product-icon">🏷️</div>
-                                </div>
-                            </div>
-                        </article>
-
-                        <article className="product-card">
-                            <div className="product-image">
-                                <span>🧘</span>
-                            </div>
-                            <div className="product-info">
-                                <p className="product-category">Sports</p>
-                                <h3 className="product-title">Yoga Mat Premium</h3>
-                                <div className="product-footer">
-                                    <span className="product-price">$24.99</span>
-                                    <div className="product-icon">🏷️</div>
-                                </div>
-                            </div>
-                        </article>
-
-                        <article className="product-card">
-                            <div className="product-image">
-                                <span>🎲</span>
-                            </div>
-                            <div className="product-info">
-                                <p className="product-category">Toys & Games</p>
-                                <h3 className="product-title">Board Game Collection</h3>
-                                <div className="product-footer">
-                                    <span className="product-price">$44.99</span>
-                                    <div className="product-icon">🏷️</div>
-                                </div>
-                            </div>
-                        </article>
-
-                        <article className="product-card">
-                            <div className="product-image">
-                                <span>🔊</span>
-                                <span className="product-tag">SALE</span>
-                            </div>
-                            <div className="product-info">
-                                <p className="product-category">Electronics</p>
-                                <h3 className="product-title">Bluetooth Speaker</h3>
-                                <div className="product-footer">
-                                    <span className="product-price">$119.99</span>
-                                    <div className="product-icon">🏷️</div>
-                                </div>
-                            </div>
-                        </article>
+                        {loading ? (
+                            <p>Loading products...</p>
+                        ) : products.length === 0 ? (
+                            <p>No products found</p>
+                        ) : (
+                            products.map(product => (
+                                <article className="product-card" key={product.id} onClick={() => navigate(`/product/${product.id}`)}>
+                                    <div className="product-image">
+                                        {product.imageUrls && product.imageUrls.length > 0 ? (
+                                            <img
+                                                src={`http://localhost:8081${product.imageUrls[0]}`}
+                                                alt={product.name}
+                                                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                            />
+                                        ) : (
+                                            <div className="no-image-placeholder" style={{
+                                                width: '100%',
+                                                height: '100%',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                                backgroundColor: '#f0f0f0',
+                                                fontSize: '3rem'
+                                            }}>
+                                                📦
+                                            </div>
+                                        )}
+                                    </div>
+                                    <div className="product-info">
+                                        <p className="product-category">{product.categoryName || 'Uncategorized'}</p>
+                                        <h3 className="product-title">{product.name}</h3>
+                                        <div className="product-footer">
+                                            <span className="product-price">${product.price}</span>
+                                            <div className="product-icon">🏷️</div>
+                                        </div>
+                                    </div>
+                                </article>
+                            ))
+                        )}
                     </div>
                 </main>
             </div>

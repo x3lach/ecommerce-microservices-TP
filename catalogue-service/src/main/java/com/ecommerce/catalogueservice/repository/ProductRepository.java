@@ -4,6 +4,7 @@ import com.ecommerce.catalogueservice.model.Product;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -13,4 +14,7 @@ public interface ProductRepository extends JpaRepository<Product, UUID> {
     // This will let us find a product by its SKU
     // (as required by business rule 3.1.3)
     Optional<Product> findBySku(String sku);
+
+    // Find all products by seller ID
+    List<Product> findBySellerId(UUID sellerId);
 }

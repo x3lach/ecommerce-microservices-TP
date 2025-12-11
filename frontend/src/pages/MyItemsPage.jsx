@@ -1,0 +1,716 @@
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import './MyItemsPage.css';
+
+const MyItemsPage = () => {
+    const navigate = useNavigate();
+
+    // Form states
+    const [title, setTitle] = useState('');
+    const [description, setDescription] = useState('');
+    const [price, setPrice] = useState('');
+    const [quantity, setQuantity] = useState(1);
+    const [selectedCondition, setSelectedCondition] = useState('New');
+    const [categories, setCategories] = useState([]);
+    const [selectedCategory, setSelectedCategory] = useState('');
+    const [brands, setBrands] = useState([]);
+    const [selectedBrand, setSelectedBrand] = useState('');
+    const [images, setImages] = useState([]);
+    const [weight, setWeight] = useState('');
+    const [length, setLength] = useState('');
+    const [width, setWidth] = useState('');
+    const [height, setHeight] = useState('');
+    const [selectedShipping, setSelectedShipping] = useState(['Standard Shipping']);
+    const [expressShippingPrice, setExpressShippingPrice] = useState('');
+    const [standardShippingPrice, setStandardShippingPrice] = useState('0');
+
+    // Fetching data
+    useEffect(() => {
+        const token = localStorage.getItem('token');
+        const fetchCategories = async () => {
+            try {
+                const response = await fetch('http://localhost:8081/api/v1/categories', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (response.ok) setCategories(await response.json());
+                else console.error('Failed to fetch categories');
+            } catch (error) {
+                console.error('Error fetching categories:', error);
+            }
+        };
+
+        const fetchBrands = async () => {
+            try {
+                const response = await fetch('http://localhost:8081/api/v1/brands', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (response.ok) setBrands(await response.json());
+                else console.error('Failed to fetch brands');
+            } catch (error) {
+                console.error('Error fetching brands:', error);
+            }
+        };
+
+        fetchCategories();
+        fetchBrands();
+    }, []);
+
+    // Handlers
+    const handleImageUpload = (e) => {
+        const files = Array.from(e.target.files);
+        if (images.length + files.length > 8) {
+            alert("You can only upload a maximum of 8 images.");
+            return;
+        }
+        setImages(prevImages => [...prevImages, ...files]);
+    };
+
+    const removeImage = (index) => {
+        setImages(prevImages => prevImages.filter((_, i) => i !== index));
+    };
+
+    // Drag and drop handlers for reordering images
+    const [draggedIndex, setDraggedIndex] = useState(null);
+
+    const handleDragStart = (e, index) => {
+        setDraggedIndex(index);
+        e.dataTransfer.effectAllowed = 'move';
+    };
+
+    const handleDragOver = (e, index) => {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+    };
+
+    const handleDrop = (e, dropIndex) => {
+        e.preventDefault();
+        if (draggedIndex === null || draggedIndex === dropIndex) {
+            setDraggedIndex(null);
+            return;
+        }
+
+        const newImages = [...images];
+        const draggedImage = newImages[draggedIndex];
+        newImages.splice(draggedIndex, 1);
+        newImages.splice(dropIndex, 0, draggedImage);
+        setImages(newImages);
+        setDraggedIndex(null);
+    };
+
+    const handleDragEnd = () => {
+        setDraggedIndex(null);
+    };
+
+    const handleSubmit = async () => {
+        if (!title || !description || !price || !selectedCategory || images.length === 0) {
+            alert("Please fill out all required fields and upload at least one image.");
+            return;
+        }
+
+        const token = localStorage.getItem('token');
+
+        // Auto-generate SKU from title
+        const generatedSku = `SKU-${title.replace(/\s+/g, '-').toUpperCase()}`;
+
+        const shippingOptions = selectedShipping.map(name => {
+            let priceValue;
+            if (name === 'Standard Shipping') {
+                priceValue = standardShippingPrice;
+            } else if (name === 'Express Shipping') {
+                priceValue = expressShippingPrice;
+            } else { // Local Pickup
+                priceValue = 0;
+            }
+            const finalPrice = parseFloat(priceValue);
+            return { name, price: isNaN(finalPrice) ? 0 : finalPrice };
+        });
+
+        const productRequest = {
+            name: title,
+            description,
+            price: parseFloat(price),
+            stockQuantity: parseInt(quantity, 10),
+            sku: generatedSku,
+            categoryId: selectedCategory,
+            brandId: selectedBrand || null,
+            isActive: true,
+            weight: parseFloat(weight) || null,
+            packageLength: parseFloat(length) || null,
+            packageWidth: parseFloat(width) || null,
+            packageHeight: parseFloat(height) || null,
+            shippingOptions: shippingOptions,
+        };
+
+        console.log("Product Request:", productRequest);
+
+        try {
+            const productResponse = await fetch('http://localhost:8081/api/v1/products', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify(productRequest)
+            });
+
+            if (!productResponse.ok) {
+                const errorData = await productResponse.json();
+                throw new Error(errorData.message || 'Failed to create product');
+            }
+
+            const createdProduct = await productResponse.json();
+            const productId = createdProduct.id;
+
+            // Step 2: Upload images
+            const formData = new FormData();
+            images.forEach(image => {
+                formData.append('files', image);
+            });
+
+            const imageResponse = await fetch(`http://localhost:8081/api/v1/products/${productId}/images`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                },
+                body: formData
+            });
+
+            if (!imageResponse.ok) {
+                throw new Error('Failed to upload images');
+            }
+
+            alert('Product listed successfully!');
+            navigate(`/`);
+        } catch (error) {
+            console.error("Failed to list item:", error);
+            alert(`Error: ${error.message}`);
+        }
+    };
+    
+    // UI Helpers
+    const renderCategories = (parentId = null, level = 0) => {
+        const items = categories.filter(category => category.parentId === parentId);
+        if (items.length === 0) return null;
+        return items.map(category => (
+            <React.Fragment key={category.id}>
+                <option value={category.id}>
+                    {'\u00A0'.repeat(level * 4)}{category.name}
+                </option>
+                {renderCategories(category.id, level + 1)}
+            </React.Fragment>
+        ));
+    };
+
+    const conditionOptions = ['New', 'Like New', 'Good', 'Fair', 'Poor', 'For Parts'];
+    const conditionIcons = ['✨', '👌', '👍', '👎', '🔧', '📦'];
+
+    const shippingOptions = [
+        { id: 'standard', name: 'Standard Shipping', desc: 'Delivery in 5-7 business days', price: 'Free' },
+        { id: 'express', name: 'Express Shipping', desc: 'Delivery in 2-3 business days', price: '$9.99' },
+        { id: 'local', name: 'Local Pickup', desc: 'Buyer picks up the item', price: 'Free' }
+    ];
+
+    return (
+        <div>
+            {/* HEADER */}
+            <header>
+                <div className="header-content">
+                    <div className="header-left">
+                        <button className="back-button" onClick={() => navigate(-1)}>
+                            ← Back
+                        </button>
+                        <h1 className="header-title">List Your Item</h1>
+                    </div>
+                    <button className="save-draft-btn">💾 Save Draft</button>
+                </div>
+            </header>
+
+            {/* MAIN CONTAINER */}
+            <div className="sell-container">
+                {/* FORM SECTION */}
+                <div>
+                    {/* PHOTOS SECTION */}
+                    <section className="form-section" style={{ marginBottom: '2rem' }}>
+                        <h2 className="section-title">📸 Photos</h2>
+                        <p className="section-description">
+                            Upload up to 8 high-quality photos. The first photo will be your main listing image.
+                        </p>
+
+                        <input
+                            id="imageUpload"
+                            type="file"
+                            multiple
+                            accept="image/png, image/jpeg"
+                            onChange={handleImageUpload}
+                            style={{ display: 'none' }}
+                        />
+
+                        {images.length === 0 ? (
+                            /* Empty state - Large upload area */
+                            <label htmlFor="imageUpload" className="photo-upload-empty">
+                                <div className="upload-empty-content">
+                                    <div className="upload-camera-icon">
+                                        <svg width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                                            <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
+                                            <circle cx="12" cy="13" r="4"></circle>
+                                        </svg>
+                                    </div>
+                                    <h3 className="upload-empty-title">Add Your Product Photos</h3>
+                                    <p className="upload-empty-text">Click to browse or drag and drop images here</p>
+                                    <div className="upload-empty-specs">
+                                        <span className="spec-badge">PNG or JPG</span>
+                                        <span className="spec-badge">Up to 10MB each</span>
+                                        <span className="spec-badge">Max 8 photos</span>
+                                    </div>
+                                </div>
+                            </label>
+                        ) : (
+                            /* Photos added state */
+                            <div className="photo-upload-grid">
+                                {/* Main photo display */}
+                                <div className="main-photo-container">
+                                    <div
+                                        className={`main-photo-wrapper ${draggedIndex !== null ? 'drop-target' : ''}`}
+                                        draggable
+                                        onDragStart={(e) => handleDragStart(e, 0)}
+                                        onDragOver={(e) => handleDragOver(e, 0)}
+                                        onDrop={(e) => handleDrop(e, 0)}
+                                        onDragEnd={handleDragEnd}
+                                    >
+                                        <img
+                                            src={URL.createObjectURL(images[0])}
+                                            alt="Main product"
+                                            className="main-photo-img"
+                                        />
+                                        <div className="main-photo-badge">
+                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                                                <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"/>
+                                            </svg>
+                                            <span>Main Photo</span>
+                                        </div>
+                                        <button
+                                            className="main-photo-remove"
+                                            onClick={(e) => {
+                                                e.preventDefault();
+                                                e.stopPropagation();
+                                                removeImage(0);
+                                            }}
+                                            type="button"
+                                        >
+                                            ✕
+                                        </button>
+                                    </div>
+                                    <p className="main-photo-tip">
+                                        💡 Drag images to reorder • This will be shown on the main page
+                                    </p>
+                                </div>
+
+                                {/* Additional photos grid */}
+                                <div className="additional-photos">
+                                    <div className="additional-photos-header">
+                                        <h4 className="additional-photos-title">Additional Photos ({images.length - 1}/7)</h4>
+                                        {images.length < 8 && (
+                                            <label htmlFor="imageUpload" className="add-more-btn">
+                                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                    <line x1="12" y1="5" x2="12" y2="19"></line>
+                                                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                                                </svg>
+                                                Add More
+                                            </label>
+                                        )}
+                                    </div>
+
+                                    <div className="photos-thumbnail-grid">
+                                        {images.slice(1).map((image, index) => (
+                                            <div
+                                                key={index + 1}
+                                                className={`photo-thumbnail ${draggedIndex === index + 1 ? 'dragging' : ''}`}
+                                                draggable
+                                                onDragStart={(e) => handleDragStart(e, index + 1)}
+                                                onDragOver={(e) => handleDragOver(e, index + 1)}
+                                                onDrop={(e) => handleDrop(e, index + 1)}
+                                                onDragEnd={handleDragEnd}
+                                            >
+                                                <img
+                                                    src={URL.createObjectURL(image)}
+                                                    alt={`Product ${index + 2}`}
+                                                    className="photo-thumbnail-img"
+                                                />
+                                                <div className="photo-thumbnail-number">{index + 2}</div>
+                                                <button
+                                                    className="photo-thumbnail-remove"
+                                                    onClick={(e) => {
+                                                        e.preventDefault();
+                                                        e.stopPropagation();
+                                                        removeImage(index + 1);
+                                                    }}
+                                                    type="button"
+                                                >
+                                                    ✕
+                                                </button>
+                                            </div>
+                                        ))}
+
+                                        {/* Add more placeholder */}
+                                        {images.length < 8 && (
+                                            <label htmlFor="imageUpload" className="photo-thumbnail photo-thumbnail-add">
+                                                <div className="photo-add-icon">
+                                                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                        <line x1="12" y1="5" x2="12" y2="19"></line>
+                                                        <line x1="5" y1="12" x2="19" y2="12"></line>
+                                                    </svg>
+                                                </div>
+                                                <span className="photo-add-text">Add Photo</span>
+                                            </label>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+                    </section>
+
+                    {/* BASIC INFO SECTION */}
+                    <section className="form-section" style={{ marginBottom: '2rem' }}>
+                        <h2 className="section-title">📝 Basic Information</h2>
+                        <p className="section-description">Tell us about your item</p>
+
+                        <div className="form-group">
+                            <label className="form-label">Title<span className="required">*</span></label>
+                            <input
+                                type="text"
+                                className="form-input"
+                                placeholder="e.g., iPhone 13 Pro Max 256GB"
+                                maxLength="80"
+                                value={title}
+                                onChange={(e) => setTitle(e.target.value)}
+                            />
+                            <div className="char-count">{title.length} / 80</div>
+                        </div>
+
+                        <div className="form-group">
+                            <label className="form-label">Category<span className="required">*</span></label>
+                            <select
+                                className="form-select"
+                                value={selectedCategory}
+                                onChange={(e) => setSelectedCategory(e.target.value)}
+                            >
+                                <option value="">Select a category</option>
+                                {renderCategories()}
+                            </select>
+                        </div>
+
+                        <div className="form-group">
+                            <label className="form-label">Brand</label>
+                            <select
+                                className="form-select"
+                                value={selectedBrand}
+                                onChange={(e) => setSelectedBrand(e.target.value)}
+                            >
+                                <option value="">Select a brand (optional)</option>
+                                {brands.map(brand => (
+                                    <option key={brand.id} value={brand.id}>{brand.name}</option>
+                                ))}
+                            </select>
+                        </div>
+
+                        <div className="form-group">
+                            <label className="form-label">Description<span className="required">*</span></label>
+                            <textarea
+                                className="form-textarea"
+                                placeholder="Describe your item in detail. Include condition, features, and any defects..."
+                                maxLength="1000"
+                                value={description}
+                                onChange={(e) => setDescription(e.target.value)}
+                            ></textarea>
+                            <div className="char-count">{description.length} / 1000</div>
+                        </div>
+
+                        <div className="form-group">
+                            <label className="form-label">Condition<span className="required">*</span></label>
+                            <div className="condition-grid">
+                                {conditionOptions.map((condition, index) => (
+                                    <div
+                                        key={condition}
+                                        className={`condition-option ${selectedCondition === condition ? 'selected' : ''}`}
+                                        onClick={() => setSelectedCondition(condition)}
+                                    >
+                                        <div className="condition-icon">{conditionIcons[index]}</div>
+                                        <div className="condition-label">{condition}</div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    </section>
+
+                    {/* PRICING SECTION */}
+                    <section className="form-section" style={{ marginBottom: '2rem' }}>
+                        <h2 className="section-title">💰 Pricing</h2>
+                        <p className="section-description">Set your price and shipping options</p>
+
+                        <div className="form-group">
+                            <label className="form-label">Price<span className="required">*</span></label>
+                            <div className="price-input-wrapper">
+                                <input
+                                    type="number"
+                                    className="form-input price-input"
+                                    placeholder="0.00"
+                                    step="0.01"
+                                    min="0"
+                                    value={price}
+                                    onChange={(e) => setPrice(e.target.value)}
+                                />
+                            </div>
+                        </div>
+
+                        <div className="form-group">
+                            <label className="form-label">Quantity<span className="required">*</span></label>
+                            <input
+                                type="number"
+                                className="form-input"
+                                placeholder="1"
+                                min="1"
+                                value={quantity}
+                                onChange={(e) => setQuantity(e.target.value)}
+                            />
+                        </div>
+                    </section>
+
+                    {/* SHIPPING SECTION */}
+                    <section className="form-section" style={{ marginBottom: '2rem' }}>
+                        <h2 className="section-title">🚚 Shipping</h2>
+                        <p className="section-description">Choose shipping options (you can select multiple)</p>
+
+                        {/* Standard Shipping with custom price input */}
+                        <div
+                            className={`shipping-option ${selectedShipping.includes('Standard Shipping') ? 'selected' : ''}`}
+                        >
+                            <div
+                                className="shipping-checkbox"
+                                onClick={() => {
+                                    if (selectedShipping.includes('Standard Shipping')) {
+                                        setSelectedShipping(selectedShipping.filter(name => name !== 'Standard Shipping'));
+                                        setStandardShippingPrice('0');
+                                    } else {
+                                        setSelectedShipping([...selectedShipping, 'Standard Shipping']);
+                                    }
+                                }}
+                            >
+                                {selectedShipping.includes('Standard Shipping') && (
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+                                        <polyline points="20 6 9 17 4 12"></polyline>
+                                    </svg>
+                                )}
+                            </div>
+                            <div className="shipping-info" onClick={() => {
+                                if (!selectedShipping.includes('Standard Shipping')) {
+                                    setSelectedShipping([...selectedShipping, 'Standard Shipping']);
+                                }
+                            }}>
+                                <div className="shipping-title">Standard Shipping</div>
+                                <div className="shipping-desc">Delivery in 5-7 business days</div>
+                            </div>
+                            {selectedShipping.includes('Standard Shipping') ? (
+                                <div className="shipping-price-input-wrapper" onClick={(e) => e.stopPropagation()}>
+                                    {standardShippingPrice === '0' || standardShippingPrice === '' ? (
+                                        <div
+                                            className="shipping-price-display free-shipping"
+                                            onClick={() => setStandardShippingPrice('1')}
+                                            style={{ cursor: 'pointer' }}
+                                        >
+                                            Free
+                                        </div>
+                                    ) : (
+                                        <input
+                                            type="number"
+                                            className="shipping-price-input"
+                                            placeholder="1"
+                                            step="1"
+                                            min="1"
+                                            value={standardShippingPrice}
+                                            onChange={(e) => {
+                                                const value = parseInt(e.target.value);
+                                                if (value >= 1 || e.target.value === '') {
+                                                    setStandardShippingPrice(e.target.value);
+                                                }
+                                            }}
+                                            onBlur={(e) => {
+                                                const value = parseInt(e.target.value);
+                                                if (isNaN(value) || value < 1) {
+                                                    setStandardShippingPrice('0');
+                                                }
+                                            }}
+                                            onKeyPress={(e) => {
+                                                // Prevent decimal point and comma
+                                                if (e.key === '.' || e.key === ',') {
+                                                    e.preventDefault();
+                                                }
+                                            }}
+                                        />
+                                    )}
+                                    {standardShippingPrice !== '0' && standardShippingPrice !== '' && (
+                                        <span className="dollar-sign">$</span>
+                                    )}
+                                    {standardShippingPrice !== '0' && standardShippingPrice !== '' && (
+                                        <button
+                                            className="set-free-btn"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                setStandardShippingPrice('0');
+                                            }}
+                                            type="button"
+                                        >
+                                            Set Free
+                                        </button>
+                                    )}
+                                </div>
+                            ) : (
+                                <div className="shipping-price">Custom Price</div>
+                            )}
+                        </div>
+
+                        {/* Express Shipping with custom price input */}
+                        <div
+                            className={`shipping-option ${selectedShipping.includes('Express Shipping') ? 'selected' : ''}`}
+                        >
+                            <div
+                                className="shipping-checkbox"
+                                onClick={() => {
+                                    if (selectedShipping.includes('Express Shipping')) {
+                                        setSelectedShipping(selectedShipping.filter(name => name !== 'Express Shipping'));
+                                        setExpressShippingPrice('');
+                                    } else {
+                                        setSelectedShipping([...selectedShipping, 'Express Shipping']);
+                                    }
+                                }}
+                            >
+                                {selectedShipping.includes('Express Shipping') && (
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+                                        <polyline points="20 6 9 17 4 12"></polyline>
+                                    </svg>
+                                )}
+                            </div>
+                            <div className="shipping-info" onClick={() => {
+                                if (!selectedShipping.includes('Express Shipping')) {
+                                    setSelectedShipping([...selectedShipping, 'Express Shipping']);
+                                }
+                            }}>
+                                <div className="shipping-title">Express Shipping</div>
+                                <div className="shipping-desc">Delivery in 2-3 business days</div>
+                            </div>
+                            {selectedShipping.includes('Express Shipping') ? (
+                                <div className="shipping-price-input-wrapper" onClick={(e) => e.stopPropagation()}>
+                                    <input
+                                        type="number"
+                                        className="shipping-price-input"
+                                        placeholder="1"
+                                        step="1"
+                                        min="1"
+                                        value={expressShippingPrice}
+                                        onChange={(e) => {
+                                            const value = parseInt(e.target.value);
+                                            if (value >= 1 || e.target.value === '') {
+                                                setExpressShippingPrice(e.target.value);
+                                            }
+                                        }}
+                                        onBlur={(e) => {
+                                            const value = parseInt(e.target.value);
+                                            if (value < 1 && e.target.value !== '') {
+                                                setExpressShippingPrice('1');
+                                            }
+                                        }}
+                                        onKeyPress={(e) => {
+                                            // Prevent decimal point and comma
+                                            if (e.key === '.' || e.key === ',') {
+                                                e.preventDefault();
+                                            }
+                                        }}
+                                    />
+                                    <span className="dollar-sign">$</span>
+                                </div>
+                            ) : (
+                                <div className="shipping-price">Custom Price</div>
+                            )}
+                        </div>
+
+                        {/* Local Pickup */}
+                        <div
+                            className={`shipping-option ${selectedShipping.includes('Local Pickup') ? 'selected' : ''}`}
+                            onClick={() => {
+                                if (selectedShipping.includes('Local Pickup')) {
+                                    setSelectedShipping(selectedShipping.filter(name => name !== 'Local Pickup'));
+                                } else {
+                                    setSelectedShipping([...selectedShipping, 'Local Pickup']);
+                                }
+                            }}
+                        >
+                            <div className="shipping-checkbox">
+                                {selectedShipping.includes('Local Pickup') && (
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+                                        <polyline points="20 6 9 17 4 12"></polyline>
+                                    </svg>
+                                )}
+                            </div>
+                            <div className="shipping-info">
+                                <div className="shipping-title">Local Pickup</div>
+                                <div className="shipping-desc">Buyer picks up the item</div>
+                            </div>
+                            <div className="shipping-price">Free</div>
+                        </div>
+
+
+
+
+
+                    </section>
+
+                    {/* SUBMIT SECTION */}
+                    <section className="submit-section">
+                        <p className="terms-text">
+                            By listing this item, you agree to our <a href="#">Seller Terms</a> and <a href="#">Fees Policy</a>
+                        </p>
+                        <button className="submit-button" onClick={handleSubmit}>🚀 List Item</button>
+                    </section>
+                </div>
+
+                {/* PREVIEW SIDEBAR */}
+                <aside className="preview-sidebar">
+                    <div className="preview-card">
+                        <h3 className="preview-title">Preview</h3>
+                        <div className="preview-image">
+                            {images.length > 0 ? (
+                                <img
+                                    src={URL.createObjectURL(images[0])}
+                                    alt="preview"
+                                    style={{width: '100%', height: '100%', objectFit: 'cover', borderRadius: '16px'}}
+                                />
+                            ) : '📦'}
+                        </div>
+                        <h4 className="preview-product-title">{title || 'Your Item Title'}</h4>
+                        <p className="preview-category">
+                            {selectedCategory ? categories.find(c => c.id === selectedCategory)?.name : 'Category'}
+                        </p>
+                        <div className="preview-price">${price || '0.00'}</div>
+                        <p className="preview-description">
+                            {description || 'Your description will appear here. Add details about your item to help buyers make a decision.'}
+                        </p>
+                        <span className="preview-condition">Condition: {selectedCondition}</span>
+                    </div>
+
+                    <div className="tips-card">
+                        <div className="tips-title">💡 Listing Tips</div>
+                        <ul className="tips-list">
+                            <li>Use clear, well-lit photos from multiple angles</li>
+                            <li>Write detailed, honest descriptions</li>
+                            <li>Research similar items for competitive pricing</li>
+                            <li>Mention any defects or wear clearly</li>
+                            <li>Respond to buyer questions quickly</li>
+                            <li>Ship items promptly after purchase</li>
+                        </ul>
+                    </div>
+                </aside>
+            </div>
+        </div>
+    );
+};
+
+export default MyItemsPage;

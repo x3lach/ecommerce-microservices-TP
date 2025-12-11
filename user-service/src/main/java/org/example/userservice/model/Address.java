@@ -2,6 +2,7 @@ package org.example.userservice.model;
 
 import jakarta.persistence.*;
 import lombok.*;
+import lombok.ToString;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import java.util.UUID;
@@ -21,6 +22,7 @@ public class Address {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
     @JsonIgnore
+    @ToString.Exclude
     private User user;
 
     private String addressLine1;

@@ -26,6 +26,7 @@ import MainPage from './pages/MainPage';
 
 
 import ProfilePage from './pages/ProfilePage';
+import MyItemsPage from './pages/MyItemsPage';
 
 
 
@@ -78,6 +79,7 @@ function App() {
 
 
                         <Route path="/profile" element={<ProfilePage />} />
+                        <Route path="/my-items" element={<MyItemsPage />} />
 
 
 

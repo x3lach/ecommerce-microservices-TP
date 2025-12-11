@@ -1,112 +1,152 @@
 package com.ecommerce.catalogueservice.service;
 
-import com.ecommerce.catalogueservice.config.RabbitMQConfig; // Import config
-import com.ecommerce.catalogueservice.dto.ProductCreatedEvent; // Import DTO
-import com.ecommerce.catalogueservice.model.Product;
+import com.ecommerce.catalogueservice.dto.ProductRequest;
+import com.ecommerce.catalogueservice.dto.ProductResponse;
+import com.ecommerce.catalogueservice.dto.ShippingInfo;
+import com.ecommerce.catalogueservice.mapper.ProductMapper;
+import com.ecommerce.catalogueservice.model.*;
+import com.ecommerce.catalogueservice.repository.BrandRepository;
+import com.ecommerce.catalogueservice.repository.CategoryRepository;
 import com.ecommerce.catalogueservice.repository.ProductRepository;
-import org.slf4j.Logger; // <-- IMPORT ADDED
-import org.slf4j.LoggerFactory; // <-- IMPORT ADDED
-import org.springframework.amqp.rabbit.core.RabbitTemplate; // Import Rabbit
+import com.ecommerce.catalogueservice.repository.ShippingOptionRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
+import com.ecommerce.catalogueservice.config.RabbitMQConfig;
+import com.ecommerce.catalogueservice.dto.ProductCreatedEvent;
 
 import java.time.Instant;
 import java.util.List;
-import java.util.UUID; // Make sure this is imported
+import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 public class ProductService {
 
-    private static final Logger log = LoggerFactory.getLogger(ProductService.class); // <-- FIX ADDED HERE
+    private static final Logger log = LoggerFactory.getLogger(ProductService.class);
 
     private final ProductRepository productRepository;
-    private final RabbitTemplate rabbitTemplate; // For sending RabbitMQ messages
+    private final CategoryRepository categoryRepository;
+    private final BrandRepository brandRepository;
+    private final RabbitTemplate rabbitTemplate;
+    private final ProductMapper productMapper;
+    private final ImageService imageService;
+    private final ShippingOptionRepository shippingOptionRepository;
 
-    // Updated constructor to inject RabbitTemplate
-    public ProductService(ProductRepository productRepository, RabbitTemplate rabbitTemplate) {
+
+    public ProductService(ProductRepository productRepository, CategoryRepository categoryRepository, BrandRepository brandRepository, RabbitTemplate rabbitTemplate, ProductMapper productMapper, ImageService imageService, ShippingOptionRepository shippingOptionRepository) {
         this.productRepository = productRepository;
+        this.categoryRepository = categoryRepository;
+        this.brandRepository = brandRepository;
         this.rabbitTemplate = rabbitTemplate;
+        this.productMapper = productMapper;
+        this.imageService = imageService;
+        this.shippingOptionRepository = shippingOptionRepository;
     }
 
-    /**
-     * Gets all products.
-     * Corresponds to: GET /api/v1/products
-     */
     @Transactional(readOnly = true)
-    public List<Product> getAllProducts() {
-        return productRepository.findAll();
+    public List<ProductResponse> getAllProducts() {
+        return productRepository.findAll().stream()
+                .map(productMapper::toDto)
+                .collect(Collectors.toList());
     }
 
-    /**
-     * Gets a single product by its ID.
-     * Corresponds to: GET /products/{id}
-     */
     @Transactional(readOnly = true)
-    public Product getProductById(UUID id) {
+    public ProductResponse getProductById(UUID id) {
+        Product product = productRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Product not found with id: " + id));
+        return productMapper.toDto(product);
+    }
+
+    // I am keeping the original getProductById to avoid breaking other parts of the code for now
+    @Transactional(readOnly = true)
+    public Product getProductEntityById(UUID id) {
         return productRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Product not found with id: " + id)); // We'll make this a proper 404 later
+                .orElseThrow(() -> new RuntimeException("Product not found with id: " + id));
     }
 
-    /**
-     * Creates a new product.
-     * Corresponds to: POST /api/v1/products
-     */
+
     @Transactional
-    public Product createProduct(Product product) {
-        // Business Rule 3.1.3: Check if SKU is unique
-        productRepository.findBySku(product.getSku()).ifPresent(p -> {
+    public ProductResponse createProduct(ProductRequest productRequest, UUID sellerId) {
+        productRepository.findBySku(productRequest.getSku()).ifPresent(p -> {
             throw new IllegalArgumentException("SKU " + p.getSku() + " already exists.");
         });
 
-        // Set timestamps and default values
+        Product product = new Product();
+        product.setSellerId(sellerId);
+        product.setName(productRequest.getName());
+        product.setDescription(productRequest.getDescription());
+        product.setPrice(productRequest.getPrice());
+        product.setStockQuantity(productRequest.getStockQuantity());
+        product.setSku(productRequest.getSku());
+        product.setActive(productRequest.isActive());
         product.setCreatedAt(Instant.now());
         product.setUpdatedAt(Instant.now());
-        product.setActive(true);
+        product.setWeight(productRequest.getWeight());
+        product.setPackageLength(productRequest.getPackageLength());
+        product.setPackageWidth(productRequest.getPackageWidth());
+        product.setPackageHeight(productRequest.getPackageHeight());
 
-        // TODO: We still need to properly fetch and set the Category and Brand
-        // For now, we save it directly
+        if (productRequest.getCategoryId() != null) {
+            Category category = categoryRepository.findById(productRequest.getCategoryId())
+                    .orElseThrow(() -> new RuntimeException("Category not found"));
+            product.setCategory(category);
+        }
 
-        // Save the product *first* to get the generated ID
+        if (productRequest.getBrandId() != null) {
+            Brand brand = brandRepository.findById(productRequest.getBrandId())
+                    .orElseThrow(() -> new RuntimeException("Brand not found"));
+            product.setBrand(brand);
+        }
+
+        if (productRequest.getShippingOptions() != null && !productRequest.getShippingOptions().isEmpty()) {
+            for (ShippingInfo shippingInfo : productRequest.getShippingOptions()) {
+                ShippingOption shippingOption = shippingOptionRepository.findByName(shippingInfo.getName())
+                        .orElseThrow(() -> new RuntimeException("Shipping option not found: " + shippingInfo.getName()));
+                ProductShipping productShipping = new ProductShipping();
+                productShipping.setProduct(product);
+                productShipping.setShippingOption(shippingOption);
+                productShipping.setPrice(shippingInfo.getPrice());
+                product.getShippingOptions().add(productShipping);
+            }
+        }
+
         Product savedProduct = productRepository.save(product);
 
-        // --- NEW PART: Send RabbitMQ Event ---
-
-        // Create the event DTO (Data Transfer Object)
-        ProductCreatedEvent event = new ProductCreatedEvent(
-                savedProduct.getId(),
-                savedProduct.getSku(),
-                savedProduct.getName(),
-                savedProduct.getDescription(),
-                savedProduct.getPrice()
-        );
-
-        // Send the event to the RabbitMQ exchange with the correct routing key
-        log.info("Sending product.created event for SKU: {}", event.sku()); // Now this will work
-        rabbitTemplate.convertAndSend(
-                RabbitMQConfig.PRODUCT_EXCHANGE_NAME, // Using the correct constant from your config
-                RabbitMQConfig.ROUTING_KEY_PRODUCT_CREATED,
-                event
-        );
-        // --- END NEW PART ---
-
-        return savedProduct; // Return the saved product to the controller
+        return productMapper.toDto(savedProduct);
     }
 
-    /**
-     * Decreases the stock for a given product.
-     * This is called by the RabbitMQ listener.
-     */
+    @Transactional
+    public ProductResponse addImagesToProduct(UUID productId, List<MultipartFile> files) {
+        Product product = getProductEntityById(productId);
+
+        if (files.size() > 8) {
+            throw new IllegalArgumentException("Cannot upload more than 8 images.");
+        }
+
+        files.forEach(file -> {
+            String imageUrl = imageService.store(file);
+            ProductImage productImage = new ProductImage();
+            productImage.setProduct(product);
+            productImage.setImageUrl(imageUrl);
+            product.getImages().add(productImage);
+        });
+
+        Product savedProduct = productRepository.save(product);
+        return productMapper.toDto(savedProduct);
+    }
+
     @Transactional
     public void decreaseStock(UUID productId, int quantityToDecrease) {
         log.info("Attempting to decrease stock for product: {} by quantity: {}", productId, quantityToDecrease);
 
-        Product product = productRepository.findById(productId)
-                .orElseThrow(() -> new RuntimeException("Product not found: " + productId));
+        Product product = getProductEntityById(productId);
 
         int newStock = product.getStockQuantity() - quantityToDecrease;
         if (newStock < 0) {
-            // This should not happen if stock was validated at checkout,
-            // but it's a good safety check.
             log.warn("Stock for product {} went negative. Setting to 0.", productId);
             newStock = 0;
         }
@@ -114,21 +154,12 @@ public class ProductService {
         product.setStockQuantity(newStock);
         productRepository.save(product);
         log.info("Successfully updated stock for product: {}. New stock: {}", productId, newStock);
-
-        // TODO: Send a "product.stock.updated" event
     }
-    /**
-     * Updates an existing product.
-     * Corresponds to: PUT /api/v1/products/{id}
-     */
+
     @Transactional
     public Product updateProduct(UUID id, Product productDetails) {
-        // 1. Find the existing product
-        Product existingProduct = productRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Product not found with id: " + id));
+        Product existingProduct = getProductEntityById(id);
 
-        // 2. Check for SKU uniqueness (if the SKU is being changed)
-        // Business Rule 3.1.3
         if (productDetails.getSku() != null && !productDetails.getSku().equals(existingProduct.getSku())) {
             productRepository.findBySku(productDetails.getSku()).ifPresent(p -> {
                 throw new IllegalArgumentException("SKU " + p.getSku() + " already exists.");
@@ -136,9 +167,6 @@ public class ProductService {
             existingProduct.setSku(productDetails.getSku());
         }
 
-        // 3. Update the fields
-        // A better way is to use a DTO and a mapper (like MapStruct)
-        // but this is the direct way.
         if (productDetails.getName() != null) {
             existingProduct.setName(productDetails.getName());
         }
@@ -152,36 +180,24 @@ public class ProductService {
             existingProduct.setStockQuantity(productDetails.getStockQuantity());
         }
 
-        // The @PreUpdate annotation in Product.java will auto-update the updatedAt timestamp
-
-        // 4. Save the updated product
         Product updatedProduct = productRepository.save(existingProduct);
 
-        // 5. Send an "product.updated" event
-        // (We'll build the DTO and listener for this later)
-        // rabbitTemplate.convertAndSend(RabbitMQConfig.PRODUCT_EXCHANGE_NAME, "product.updated", updatedProduct);
         log.info("Product updated: {}", updatedProduct.getId());
 
         return updatedProduct;
     }
-    /**
-     * Deletes a product.
-     * Corresponds to: DELETE /api/v1/products/{id}
-     * Your specs call for a "soft delete"
-     * but for simplicity, we will do a hard delete first.
-     */
+
+    @Transactional(readOnly = true)
+    public List<ProductResponse> getProductsBySellerId(UUID sellerId) {
+        return productRepository.findBySellerId(sellerId).stream()
+                .map(productMapper::toDto)
+                .collect(Collectors.toList());
+    }
+
     @Transactional
     public void deleteProduct(UUID id) {
-        // 1. Find the existing product
-        Product product = productRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Product not found with id: " + id));
-
-        // 2. Delete the product
+        Product product = getProductEntityById(id);
         productRepository.delete(product);
-
-        // 3. Send a "product.deleted" event
-        // (We'll build the DTO and listener for this later)
-        // rabbitTemplate.convertAndSend(RabbitMQConfig.PRODUCT_EXCHANGE_NAME, "product.deleted", id);
         log.info("Product deleted: {}", id);
     }
 }
