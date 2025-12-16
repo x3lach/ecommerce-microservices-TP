@@ -67,10 +67,9 @@ public class ProductController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<ProductResponse> updateProduct(@PathVariable UUID id, @RequestBody Product productDetails) {
-        Product updatedProduct = productService.updateProduct(id, productDetails);
-        ProductResponse productResponse = productMapper.toDto(updatedProduct);
-        return ResponseEntity.ok(productResponse);
+    public ResponseEntity<ProductResponse> updateProduct(@PathVariable UUID id, @RequestBody ProductRequest productDetails) {
+        ProductResponse updatedProduct = productService.updateProduct(id, productDetails);
+        return ResponseEntity.ok(updatedProduct);
     }
 
     @DeleteMapping("/{id}")

@@ -33,6 +33,8 @@ const ProfilePage = () => {
         isDefault: false
     });
     const [profileDropdownActive, setProfileDropdownActive] = useState(false);
+    const [showOrderModal, setShowOrderModal] = useState(false);
+    const [selectedOrder, setSelectedOrder] = useState(null);
 
     const toggleProfile = () => {
         setProfileDropdownActive(!profileDropdownActive);
@@ -300,7 +302,8 @@ const ProfilePage = () => {
             }
 
             // 4. If the new default was an existing address, delete it from the secondary list
-            if (sourceAddressId && sourceAddressId.startsWith('user-') === false) { // Ensure it's not the user id placeholder
+            if (sourceAddressId && sourceAddressId.startsWith('user-') === false) // Ensure it's not the user id placeholder
+            {
                 const deleteSourceAddressResponse = await fetch(`http://localhost:8081/api/v1/users/${user.id}/addresses/${sourceAddressId}`, {
                     method: 'DELETE',
                     headers: { 'Authorization': `Bearer ${token}` }
@@ -410,6 +413,41 @@ const ProfilePage = () => {
         } catch (error) {
             console.error('Error uploading image:', error);
             alert('Failed to upload image. Please try again.');
+        }
+    };
+
+    const handleViewOrderDetails = (order) => {
+        setSelectedOrder(order);
+        setShowOrderModal(true);
+    };
+
+    const handleConfirmOrder = async (orderId) => {
+        if (window.confirm('Are you sure you want to confirm this order as received?')) {
+            const token = localStorage.getItem('token');
+            try {
+                const response = await fetch(`http://localhost:8081/api/v1/orders/${orderId}/confirm`, {
+                    method: 'PATCH',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (response.ok) {
+                    alert('Order confirmed successfully!');
+                    setOrders(prevOrders =>
+                        prevOrders.map(order =>
+                            order.id === orderId ? { ...order, status: 'CONFIRMED' } : order
+                        )
+                    );
+                    // Also update the selected order if modal is open
+                    if (selectedOrder && selectedOrder.id === orderId) {
+                        setSelectedOrder(prev => ({ ...prev, status: 'CONFIRMED' }));
+                    }
+                } else {
+                    console.error('Failed to confirm order');
+                    alert('Failed to confirm order. Please try again.');
+                }
+            } catch (error) {
+                console.error('Error confirming order:', error);
+                alert('An error occurred. Please try again.');
+            }
         }
     };
 
@@ -554,7 +592,12 @@ const ProfilePage = () => {
                                     <div className="order-footer">
                                         <div className="order-total">${order.totalAmount}</div>
                                         <div className="order-actions">
-                                            <button className="order-button">View Details</button>
+                                            {order.status === 'PENDING' && (
+                                                <button className="order-button confirm-btn" onClick={() => handleConfirmOrder(order.id)}>
+                                                    Confirm Received
+                                                </button>
+                                            )}
+                                            <button className="order-button" onClick={() => handleViewOrderDetails(order)}>View Details</button>
                                         </div>
                                     </div>
                                 </div>
@@ -611,6 +654,50 @@ const ProfilePage = () => {
                                 </button>
                             </div>
                         </form>
+                    </div>
+                </div>
+            )}
+
+            {showOrderModal && selectedOrder && (
+                <div className="order-modal">
+                    <div className="modal-content">
+                        <span className="close" onClick={() => setShowOrderModal(false)}>&times;</span>
+                        <h2>Order Details</h2>
+                        <div className="order-details">
+                            <div className="order-detail-item">
+                                <strong>Order Number:</strong> #{selectedOrder.orderNumber}
+                            </div>
+                            <div className="order-detail-item">
+                                <strong>Date:</strong> {new Date(selectedOrder.createdAt).toLocaleString()}
+                            </div>
+                            <div className="order-detail-item">
+                                <strong>Status:</strong> <span className={`order-status status-${selectedOrder.status.toLowerCase()}`}>{selectedOrder.status}</span>
+                            </div>
+                            <div className="order-detail-item">
+                                <strong>Total Amount:</strong> ${selectedOrder.totalAmount}
+                            </div>
+                        </div>
+                        <h3>Items</h3>
+                        <div className="order-items">
+                            {selectedOrder.items.map(item => (
+                                <div className="order-item" key={item.productId}>
+                                    <div className="order-item-details">
+                                        <div className="order-item-name">{item.productName}</div>
+                                        <div className="order-item-quantity">Quantity: {item.quantity}</div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                        <div className="order-modal-actions">
+                            {selectedOrder.status !== 'CONFIRMED' && (
+                                <button className="order-confirm-button" onClick={() => handleConfirmOrder(selectedOrder.id)}>
+                                    Confirm Order
+                                </button>
+                            )}
+                            <button className="order-close-button" onClick={() => setShowOrderModal(false)}>
+                                Close
+                            </button>
+                        </div>
                     </div>
                 </div>
             )}

@@ -51,4 +51,8 @@ public class UserController {
 		return ResponseEntity.noContent().build();
 	}
 
+	@PatchMapping("/{id}/upgrade-to-seller")
+	public ResponseEntity<UserResponse> upgradeToSeller(@PathVariable UUID id) {
+		return ResponseEntity.ok(userService.upgradeToSeller(id));
+	}
 }

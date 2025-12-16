@@ -16,30 +16,96 @@ const MainPage = () => {
     const [sidebarHidden, setSidebarHidden] = useState(false);
     const [profileDropdownActive, setProfileDropdownActive] = useState(false);
     const [products, setProducts] = useState([]);
+    const [filteredProducts, setFilteredProducts] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [categories, setCategories] = useState([]);
+    const [brands, setBrands] = useState([]);
+
+    // Filter States
+    const [filterName, setFilterName] = useState('');
+    const [minPrice, setMinPrice] = useState('');
+    const [maxPrice, setMaxPrice] = useState('');
+    const [selectedCategories, setSelectedCategories] = useState([]);
+    const [selectedBrands, setSelectedBrands] = useState([]);
+
     const navigate = useNavigate();
     const { user } = useContext(AuthContext);
     const [userDetails, setUserDetails] = useState(null);
 
-    // Fetch products from database
+    // Fetch initial data
     useEffect(() => {
-        const fetchProducts = async () => {
+        const fetchData = async () => {
             try {
-                const response = await fetch('http://localhost:8081/api/v1/products');
-                if (response.ok) {
-                    const data = await response.json();
+                const [productsRes, categoriesRes, brandsRes] = await Promise.all([
+                    fetch('http://localhost:8081/api/v1/products'),
+                    fetch('http://localhost:8081/api/v1/categories'),
+                    fetch('http://localhost:8081/api/v1/brands')
+                ]);
+
+                if (productsRes.ok) {
+                    const data = await productsRes.json();
                     setProducts(data);
-                } else {
-                    console.error('Failed to fetch products');
+                    setFilteredProducts(data);
                 }
+                if (categoriesRes.ok) setCategories(await categoriesRes.json());
+                if (brandsRes.ok) setBrands(await brandsRes.json());
+
             } catch (error) {
-                console.error('Error fetching products:', error);
+                console.error('Error fetching data:', error);
             } finally {
                 setLoading(false);
             }
         };
-        fetchProducts();
+        fetchData();
     }, []);
+
+    // Filter Logic
+    useEffect(() => {
+        let result = products;
+
+        // Name Filter
+        if (filterName) {
+            result = result.filter(p => p.name.toLowerCase().includes(filterName.toLowerCase()));
+        }
+
+        // Price Filter
+        if (minPrice) {
+            result = result.filter(p => p.price >= parseFloat(minPrice));
+        }
+        if (maxPrice) {
+            result = result.filter(p => p.price <= parseFloat(maxPrice));
+        }
+
+        // Category Filter
+        if (selectedCategories.length > 0) {
+            // Check against categoryName (since product has categoryName flattened in DTO) or fetch full structure if needed.
+            // Assuming product.categoryName is available as per DTO.
+            result = result.filter(p => selectedCategories.includes(p.categoryName));
+        }
+
+        // Brand Filter
+        if (selectedBrands.length > 0) {
+            result = result.filter(p => selectedBrands.includes(p.brandName));
+        }
+
+        setFilteredProducts(result);
+    }, [products, filterName, minPrice, maxPrice, selectedCategories, selectedBrands]);
+
+    const handleCategoryChange = (categoryName) => {
+        setSelectedCategories(prev => 
+            prev.includes(categoryName) 
+                ? prev.filter(c => c !== categoryName)
+                : [...prev, categoryName]
+        );
+    };
+
+    const handleBrandChange = (brandName) => {
+        setSelectedBrands(prev => 
+            prev.includes(brandName) 
+                ? prev.filter(b => b !== brandName)
+                : [...prev, brandName]
+        );
+    };
 
     useEffect(() => {
         if (user) {
@@ -98,7 +164,13 @@ const MainPage = () => {
 
                 <div className="search-container">
                     <span className="search-icon">🔍</span>
-                    <input type="text" className="search-bar" placeholder="Search products..." />
+                    <input 
+                        type="text" 
+                        className="search-bar" 
+                        placeholder="Search products..." 
+                        value={filterName}
+                        onChange={(e) => setFilterName(e.target.value)}
+                    />
                 </div>
 
                 <div className="header-actions">
@@ -140,17 +212,35 @@ const MainPage = () => {
 
                     <div className="filter-section">
                         <label className="filter-label">Search by Name</label>
-                        <input type="text" className="filter-input" placeholder="Product name..." />
+                        <input 
+                            type="text" 
+                            className="filter-input" 
+                            placeholder="Product name..." 
+                            value={filterName}
+                            onChange={(e) => setFilterName(e.target.value)}
+                        />
                     </div>
 
                     <div className="filter-section">
                         <label className="filter-label">Price Range</label>
                         <div className="price-range">
                             <div className="price-input-wrapper">
-                                <input type="number" className="filter-input price-input" placeholder="Min" />
+                                <input 
+                                    type="number" 
+                                    className="filter-input price-input" 
+                                    placeholder="Min" 
+                                    value={minPrice}
+                                    onChange={(e) => setMinPrice(e.target.value)}
+                                />
                             </div>
                             <div className="price-input-wrapper">
-                                <input type="number" className="filter-input price-input" placeholder="Max" />
+                                <input 
+                                    type="number" 
+                                    className="filter-input price-input" 
+                                    placeholder="Max" 
+                                    value={maxPrice}
+                                    onChange={(e) => setMaxPrice(e.target.value)}
+                                />
                             </div>
                         </div>
                     </div>
@@ -158,51 +248,67 @@ const MainPage = () => {
                     <div className="filter-section">
                         <label className="filter-label">Categories</label>
                         <div className="category-list">
-                            <label className="category-item">
-                                <input type="checkbox" className="category-checkbox" />
-                                <span className="category-label">Electronics</span>
-                            </label>
-                            <label className="category-item">
-                                <input type="checkbox" className="category-checkbox" />
-                                <span className="category-label">Fashion</span>
-                            </label>
-                            <label className="category-item">
-                                <input type="checkbox" className="category-checkbox" />
-                                <span className="category-label">Home & Garden</span>
-                            </label>
-                            <label className="category-item">
-                                <input type="checkbox" className="category-checkbox" />
-                                <span className="category-label">Sports</span>
-                            </label>
-                            <label className="category-item">
-                                <input type="checkbox" className="category-checkbox" />
-                                <span className="category-label">Accessories</span>
-                            </label>
-                            <label className="category-item">
-                                <input type="checkbox" className="category-checkbox" />
-                                <span className="category-label">Toys & Games</span>
-                            </label>
+                            {categories.map(category => (
+                                <label key={category.id} className="category-item">
+                                    <input 
+                                        type="checkbox" 
+                                        className="category-checkbox" 
+                                        checked={selectedCategories.includes(category.name)}
+                                        onChange={() => handleCategoryChange(category.name)}
+                                    />
+                                    <span className="category-label">{category.name}</span>
+                                </label>
+                            ))}
                         </div>
                     </div>
 
-                    <button className="apply-filters-btn">Apply Filters</button>
+                    <div className="filter-section">
+                        <label className="filter-label">Brands</label>
+                        <div className="category-list">
+                            {brands.map(brand => (
+                                <label key={brand.id} className="category-item">
+                                    <input 
+                                        type="checkbox" 
+                                        className="category-checkbox" 
+                                        checked={selectedBrands.includes(brand.name)}
+                                        onChange={() => handleBrandChange(brand.name)}
+                                    />
+                                    <span className="category-label">{brand.name}</span>
+                                </label>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* Button removed as filtering is instant/reactive, or can remain to reset */}
+                    <button 
+                        className="apply-filters-btn"
+                        onClick={() => {
+                            setFilterName('');
+                            setMinPrice('');
+                            setMaxPrice('');
+                            setSelectedCategories([]);
+                            setSelectedBrands([]);
+                        }}
+                    >
+                        Reset Filters
+                    </button>
                 </aside>
 
                 <main className={`content ${sidebarHidden ? 'expanded' : ''}`} id="content">
                     <div className="content-header">
                         <h1 className="content-title">Discover Products</h1>
                         <p className="results-info">
-                            {loading ? 'Loading...' : `Showing ${products.length} product${products.length !== 1 ? 's' : ''}`}
+                            {loading ? 'Loading...' : `Showing ${filteredProducts.length} product${filteredProducts.length !== 1 ? 's' : ''}`}
                         </p>
                     </div>
 
                     <div className="products-grid">
                         {loading ? (
                             <p>Loading products...</p>
-                        ) : products.length === 0 ? (
+                        ) : filteredProducts.length === 0 ? (
                             <p>No products found</p>
                         ) : (
-                            products.map(product => (
+                            filteredProducts.map(product => (
                                 <article className="product-card" key={product.id} onClick={() => navigate(`/product/${product.id}`)}>
                                     <div className="product-image">
                                         {product.imageUrls && product.imageUrls.length > 0 ? (

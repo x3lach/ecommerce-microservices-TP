@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Dec 10, 2025 at 04:39 PM
+-- Generation Time: Dec 16, 2025 at 03:03 PM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -43,7 +43,7 @@ CREATE TABLE `addresses` (
 --
 
 INSERT INTO `addresses` (`id`, `address_line1`, `city`, `country`, `is_default`, `label`, `postal_code`, `user_id`) VALUES
-(0xa01dd08558e94079a08d73f223e8b58f, 'Rabat ya kawkab', 'Rabat', 'Morocco', b'1', 'Home', '30350', 0xbe5b0d82e3274d8ea6147ef978025a20);
+(0xc852e2a4307f4bd1ad82d5ca44eca1ac, 'Rabat ya kawkab', 'Rabat', 'Morocci', b'0', 'Old Primary', '30350', 0xbe5b0d82e3274d8ea6147ef978025a20);
 
 -- --------------------------------------------------------
 
@@ -84,17 +84,18 @@ CREATE TABLE `users` (
   `password` varchar(255) DEFAULT NULL,
   `phone` varchar(255) DEFAULT NULL,
   `postal_code` varchar(255) DEFAULT NULL,
-  `role` enum('ADMIN','CLIENT','SELLER') DEFAULT NULL
+  `role` enum('ADMIN','CLIENT','SELLER') DEFAULT NULL,
+  `profile_image_url` varchar(255) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Dumping data for table `users`
 --
 
-INSERT INTO `users` (`id`, `address_line1`, `city`, `country`, `email`, `full_name`, `password`, `phone`, `postal_code`, `role`) VALUES
-(0x321ecfa721774c63a987f7ad377351b5, 'CASABLANCA', 'CASABLANCA', 'Morocco', 'anas@gmai.com', 'anas Areski', '$2a$10$7SRmwS5wmrrMS219kpjhI.hAzBD9qCwkTOZDxP0tKxr.6HlKB9d9i', '0777432697', '20250', 'CLIENT'),
-(0x763b3d6ef8b945de9c5c190c4ca2fa27, 'CASABLANCA', 'CASABLANCA', 'Morocco', 'areski@gmail.com', 'Ilias Areski', '$2a$10$SJ0/zmWqVPx3I7RH/mx77eXkoVhvH7/QyWrLogpABeR8/NvrMSJoS', '0777432697', '20250', 'CLIENT'),
-(0xbe5b0d82e3274d8ea6147ef978025a20, 'Idrissia 1 Rue 02 N37', 'CASABLANCA', 'Morocco', 'ilias@gmail.com', 'Areski Ilias', '$2a$10$ofRpVX/LYF4CdKTdpyPVi.75kbNtE2DOQ6doWXkcPjEC0R9O.jhFa', '0612345677', '20250', 'CLIENT');
+INSERT INTO `users` (`id`, `address_line1`, `city`, `country`, `email`, `full_name`, `password`, `phone`, `postal_code`, `role`, `profile_image_url`) VALUES
+(0x321ecfa721774c63a987f7ad377351b5, 'CASABLANCA', 'CASABLANCA', 'Morocco', 'anas@gmai.com', 'anas Areski', '$2a$10$7SRmwS5wmrrMS219kpjhI.hAzBD9qCwkTOZDxP0tKxr.6HlKB9d9i', '0777432697', '20250', 'CLIENT', NULL),
+(0x763b3d6ef8b945de9c5c190c4ca2fa27, 'CASABLANCA', 'CASABLANCA', 'Morocco', 'areski@gmail.com', 'Ilias Areski', '$2a$10$SJ0/zmWqVPx3I7RH/mx77eXkoVhvH7/QyWrLogpABeR8/NvrMSJoS', '0777432697', '20250', 'CLIENT', NULL),
+(0xbe5b0d82e3274d8ea6147ef978025a20, 'Idrissia 1 Rue 02 N38', 'CASABLANCA', 'Morocco', 'ilias@gmail.com', 'Areski Ilias', '$2a$10$ofRpVX/LYF4CdKTdpyPVi.75kbNtE2DOQ6doWXkcPjEC0R9O.jhFa', '0612345677', '20250', 'CLIENT', 'http://DESKTOP-NODV6HF:8085/uploads/profile-images/be5b0d82-e327-4d8e-a614-7ef978025a20_1765618004201.jpg');
 
 --
 -- Indexes for dumped tables

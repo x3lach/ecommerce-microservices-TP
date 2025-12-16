@@ -37,6 +37,9 @@ public class Product {
     @Column(name = "stock_quantity", nullable = false)
     private int stockQuantity = 0;
 
+    @Column(name = "condition_state")
+    private String conditionState;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "category_id")
     @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
@@ -131,6 +134,14 @@ public class Product {
 
     public void setStockQuantity(int stockQuantity) {
         this.stockQuantity = stockQuantity;
+    }
+
+    public String getConditionState() {
+        return conditionState;
+    }
+
+    public void setConditionState(String conditionState) {
+        this.conditionState = conditionState;
     }
 
     public boolean isActive() {

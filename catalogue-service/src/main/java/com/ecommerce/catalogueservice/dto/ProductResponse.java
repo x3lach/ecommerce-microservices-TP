@@ -13,6 +13,7 @@ public class ProductResponse {
     private String description;
     private BigDecimal price;
     private Integer stockQuantity;
+    private String condition;
     private String sku;
     private List<String> imageUrls;
     private String categoryName;
@@ -86,6 +87,14 @@ public class ProductResponse {
 
     public void setStockQuantity(Integer stockQuantity) {
         this.stockQuantity = stockQuantity;
+    }
+
+    public String getCondition() {
+        return condition;
+    }
+
+    public void setCondition(String condition) {
+        this.condition = condition;
     }
 
     public String getSku() {

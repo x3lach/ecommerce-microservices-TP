@@ -4,6 +4,32 @@ This is a summary of all the API endpoints currently available in the applicatio
 
 ---
 
+## 📅 Updates - Tuesday, December 16, 2025
+
+### **Frontend Changes (`MyItemsPage.jsx`)**
+- **Tabs Added**: Implemented "Add Item" and "Modifier my Item" tabs for better user navigation.
+- **Product Management**:
+  - **Listing**: Users can now view their own listed products under the "Modifier my Item" tab.
+  - **Editing**: Added functionality to edit existing products. The form is pre-filled with product data, including existing images.
+  - **Deleting**: Added a "Delete" button to remove products directly from the list.
+- **Image Handling**:
+  - Fixed image display issues by prepending the API Gateway URL.
+  - Improved the image upload section to display existing server images alongside new uploads during editing.
+- **UI/UX Improvements**:
+  - Added a "Cancel" button in edit mode.
+  - Improved validation to respect existing images during updates.
+  - Ensured the user stays on the "Modifier my Item" tab when clicking "Modifier".
+
+### **Backend Changes (`catalogue-service`)**
+- **Database**: Added a new column `condition_state` to the `products` table.
+- **Entity & DTOs**:
+  - Updated `Product` entity, `ProductRequest`, and `ProductResponse` to include the `condition` field.
+- **Service Logic**:
+  - Refactored `ProductService.updateProduct` to accept `ProductRequest` DTO for consistency.
+  - Updated logic to handle mapping of the new `condition` field.
+
+---
+
 ## 📦 Catalogue-Service (Product Management)
 
 This service handles the complete management of products.
@@ -19,7 +45,8 @@ This service handles the complete management of products.
       "name": "My New Product",
       "description": "This is a great new product.",
       "price": 19.99,
-      "stockQuantity": 150
+      "stockQuantity": 150,
+      "condition": "New"
     }
     ```
 
@@ -47,7 +74,8 @@ This service handles the complete management of products.
         ```json
         {
           "name": "The NEW 4th Product Name",
-          "price": 55.99
+          "price": 55.99,
+          "condition": "Like New"
         }
         ```
 
@@ -57,6 +85,13 @@ This service handles the complete management of products.
 * **Description:** Deletes a product from the database. (Note: This will also trigger an event to remove it from the search index).
 * **Example:**
     * `DELETE http://localhost:8081/api/v1/products/b7d5f22a-a8e7-4892-97a9-603a8ac8f87d`
+
+### 6. Get Products by Seller
+
+* **Endpoint:** `GET /api/v1/products/seller/{sellerId}`
+* **Description:** Retrieves all products listed by a specific seller.
+* **Example:**
+    * `GET http://localhost:8081/api/v1/products/seller/123e4567-e89b-12d3-a456-426614174000`
 
 ---
 

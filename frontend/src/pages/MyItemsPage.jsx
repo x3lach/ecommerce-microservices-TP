@@ -1,9 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
+import AuthContext from '../context/AuthContext';
 import './MyItemsPage.css';
 
 const MyItemsPage = () => {
     const navigate = useNavigate();
+    const { user } = useContext(AuthContext);
 
     // Form states
     const [title, setTitle] = useState('');
@@ -16,6 +18,7 @@ const MyItemsPage = () => {
     const [brands, setBrands] = useState([]);
     const [selectedBrand, setSelectedBrand] = useState('');
     const [images, setImages] = useState([]);
+    const [existingImages, setExistingImages] = useState([]); // State for existing images in edit mode
     const [weight, setWeight] = useState('');
     const [length, setLength] = useState('');
     const [width, setWidth] = useState('');
@@ -23,6 +26,11 @@ const MyItemsPage = () => {
     const [selectedShipping, setSelectedShipping] = useState(['Standard Shipping']);
     const [expressShippingPrice, setExpressShippingPrice] = useState('');
     const [standardShippingPrice, setStandardShippingPrice] = useState('0');
+
+    // Tab state
+    const [activeTab, setActiveTab] = useState('addItem');
+    const [myProducts, setMyProducts] = useState([]);
+    const [editingProductId, setEditingProductId] = useState(null);
 
     // Fetching data
     useEffect(() => {
@@ -55,6 +63,87 @@ const MyItemsPage = () => {
         fetchBrands();
     }, []);
 
+    // Fetch user products when tab changes
+    useEffect(() => {
+        if (activeTab === 'modifierItem' && user) {
+            fetchMyProducts();
+        }
+    }, [activeTab, user]);
+
+    const fetchMyProducts = async () => {
+        try {
+            const token = localStorage.getItem('token');
+            const response = await fetch(`http://localhost:8081/api/v1/products/seller/${user.id}`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (response.ok) {
+                const data = await response.json();
+                setMyProducts(data);
+            }
+        } catch (error) {
+            console.error('Error fetching my products:', error);
+        }
+    };
+
+    const handleDelete = async (id) => {
+        if (!window.confirm("Are you sure you want to delete this item?")) return;
+        try {
+            const token = localStorage.getItem('token');
+            const response = await fetch(`http://localhost:8081/api/v1/products/${id}`, {
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (response.ok) {
+                setMyProducts(prev => prev.filter(p => p.id !== id));
+            } else {
+                alert("Failed to delete product");
+            }
+        } catch (error) {
+            console.error("Error deleting product:", error);
+        }
+    };
+
+    const handleEdit = (product) => {
+        setEditingProductId(product.id);
+        setTitle(product.name);
+        setDescription(product.description);
+        setPrice(product.price);
+        setQuantity(product.stockQuantity);
+        setSelectedCondition(product.condition || 'New'); // Map condition
+        setSelectedCategory(categories.find(c => c.name === product.categoryName)?.id || '');
+        // Note: Mapping brand name back to ID might be tricky if we only have name in response.
+        // Assuming we can find it by name or need ID in response.
+        // ProductResponse has brandName. We need ID.
+        // Quick fix: find brand by name
+        const foundBrand = brands.find(b => b.name === product.brandName);
+        setSelectedBrand(foundBrand ? foundBrand.id : '');
+        
+        // Shipping mapping (simplified)
+        if (product.shippingOptions) {
+            const shippingNames = product.shippingOptions.map(s => s.name);
+            setSelectedShipping(shippingNames);
+            
+            const std = product.shippingOptions.find(s => s.name === 'Standard Shipping');
+            if (std) setStandardShippingPrice(std.price.toString());
+            
+            const exp = product.shippingOptions.find(s => s.name === 'Express Shipping');
+            if (exp) setExpressShippingPrice(exp.price.toString());
+        }
+
+        // Set existing images
+        if (product.imageUrls && product.imageUrls.length > 0) {
+            const formattedImages = product.imageUrls.map(url => 
+                url.startsWith('http') ? url : `http://localhost:8081${url}`
+            );
+            setExistingImages(formattedImages);
+        } else {
+            setExistingImages([]);
+        }
+
+        setImages([]); // Clear new file uploads
+        // setActiveTab('addItem'); // Removed to stay in "Modifier my Item" tab
+    };
+
     // Handlers
     const handleImageUpload = (e) => {
         const files = Array.from(e.target.files);
@@ -67,6 +156,10 @@ const MyItemsPage = () => {
 
     const removeImage = (index) => {
         setImages(prevImages => prevImages.filter((_, i) => i !== index));
+    };
+
+    const removeExistingImage = (index) => {
+        setExistingImages(prev => prev.filter((_, i) => i !== index));
     };
 
     // Drag and drop handlers for reordering images
@@ -102,7 +195,7 @@ const MyItemsPage = () => {
     };
 
     const handleSubmit = async () => {
-        if (!title || !description || !price || !selectedCategory || images.length === 0) {
+        if (!title || !description || !price || !selectedCategory || (images.length === 0 && existingImages.length === 0)) {
             alert("Please fill out all required fields and upload at least one image.");
             return;
         }
@@ -134,6 +227,7 @@ const MyItemsPage = () => {
             categoryId: selectedCategory,
             brandId: selectedBrand || null,
             isActive: true,
+            condition: selectedCondition,
             weight: parseFloat(weight) || null,
             packageLength: parseFloat(length) || null,
             packageWidth: parseFloat(width) || null,
@@ -144,8 +238,14 @@ const MyItemsPage = () => {
         console.log("Product Request:", productRequest);
 
         try {
-            const productResponse = await fetch('http://localhost:8081/api/v1/products', {
-                method: 'POST',
+            const url = editingProductId 
+                ? `http://localhost:8081/api/v1/products/${editingProductId}`
+                : 'http://localhost:8081/api/v1/products';
+            
+            const method = editingProductId ? 'PUT' : 'POST';
+
+            const productResponse = await fetch(url, {
+                method: method,
                 headers: {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${token}`
@@ -155,34 +255,51 @@ const MyItemsPage = () => {
 
             if (!productResponse.ok) {
                 const errorData = await productResponse.json();
-                throw new Error(errorData.message || 'Failed to create product');
+                throw new Error(errorData.message || 'Failed to save product');
             }
 
-            const createdProduct = await productResponse.json();
-            const productId = createdProduct.id;
+            const savedProduct = await productResponse.json();
+            const productId = savedProduct.id;
 
-            // Step 2: Upload images
-            const formData = new FormData();
-            images.forEach(image => {
-                formData.append('files', image);
-            });
+            // Only upload images if there are new ones
+            if (images.length > 0) {
+                const formData = new FormData();
+                images.forEach(image => {
+                    formData.append('files', image);
+                });
 
-            const imageResponse = await fetch(`http://localhost:8081/api/v1/products/${productId}/images`, {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                },
-                body: formData
-            });
+                const imageResponse = await fetch(`http://localhost:8081/api/v1/products/${productId}/images`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: formData
+                });
 
-            if (!imageResponse.ok) {
-                throw new Error('Failed to upload images');
+                if (!imageResponse.ok) {
+                    throw new Error('Failed to upload images');
+                }
             }
 
-            alert('Product listed successfully!');
-            navigate(`/`);
+            alert(editingProductId ? 'Product updated successfully!' : 'Product listed successfully!');
+            
+            if (editingProductId) {
+                // If editing, go back to list
+                setEditingProductId(null);
+                setActiveTab('modifierItem');
+                fetchMyProducts(); // Refresh list
+                // Reset form
+                setTitle('');
+                setDescription('');
+                setPrice('');
+                setQuantity(1);
+                setImages([]);
+                setExistingImages([]);
+            } else {
+                navigate(`/`);
+            }
         } catch (error) {
-            console.error("Failed to list item:", error);
+            console.error("Failed to save item:", error);
             alert(`Error: ${error.message}`);
         }
     };
@@ -225,11 +342,68 @@ const MyItemsPage = () => {
                 </div>
             </header>
 
-            {/* MAIN CONTAINER */}
-            <div className="sell-container">
-                {/* FORM SECTION */}
-                <div>
-                    {/* PHOTOS SECTION */}
+            {/* TABS */}
+            <div className="tabs-container">
+                <button
+                    onClick={() => {
+                        setActiveTab('addItem');
+                        setEditingProductId(null); // Clear edit mode
+                        setTitle('');
+                        setDescription('');
+                        setPrice('');
+                        setQuantity(1);
+                        setImages([]);
+                        setExistingImages([]);
+                    }}
+                    className={`tab-button ${activeTab === 'addItem' ? 'active' : ''}`}
+                >
+                    Add Item
+                </button>
+                <button
+                    onClick={() => setActiveTab('modifierItem')}
+                    className={`tab-button ${activeTab === 'modifierItem' ? 'active' : ''}`}
+                >
+                    Modifier my Item
+                </button>
+            </div>
+
+            {/* TAB CONTENT */}
+            {activeTab === 'modifierItem' && !editingProductId ? (
+                <div className="my-products-list">
+                    {myProducts.length === 0 ? (
+                        <div className="done-message">You haven't listed any items yet.</div>
+                    ) : (
+                        myProducts.map(product => (
+                            <div key={product.id} className="my-product-card">
+                                <div className="my-product-image">
+                                    {product.imageUrls && product.imageUrls.length > 0 ? (
+                                        <img 
+                                            src={product.imageUrls[0].startsWith('http') ? product.imageUrls[0] : `http://localhost:8081${product.imageUrls[0]}`} 
+                                            alt={product.name} 
+                                        />
+                                    ) : (
+                                        <div className="no-image-placeholder">📦</div>
+                                    )}
+                                </div>
+                                <div className="my-product-info">
+                                    <h3>{product.name}</h3>
+                                    <p className="price">${product.price}</p>
+                                    <p className="condition">{product.condition || 'New'}</p>
+                                </div>
+                                <div className="my-product-actions">
+                                    <button className="edit-btn" onClick={() => handleEdit(product)}>Modifier</button>
+                                    <button className="delete-btn" onClick={() => handleDelete(product.id)}>Delete</button>
+                                </div>
+                            </div>
+                        ))
+                    )}
+                </div>
+            ) : (
+                /* MAIN CONTAINER */
+                <div className="sell-container">
+                    {/* FORM SECTION */}
+                    <div>
+                        {/* PHOTOS SECTION */}
                     <section className="form-section" style={{ marginBottom: '2rem' }}>
                         <h2 className="section-title">📸 Photos</h2>
                         <p className="section-description">
@@ -245,7 +419,7 @@ const MyItemsPage = () => {
                             style={{ display: 'none' }}
                         />
 
-                        {images.length === 0 ? (
+                        {images.length === 0 && existingImages.length === 0 ? (
                             /* Empty state - Large upload area */
                             <label htmlFor="imageUpload" className="photo-upload-empty">
                                 <div className="upload-empty-content">
@@ -267,18 +441,11 @@ const MyItemsPage = () => {
                         ) : (
                             /* Photos added state */
                             <div className="photo-upload-grid">
-                                {/* Main photo display */}
+                                {/* Main photo display - Logic: Prefer first existing image, then first new image */}
                                 <div className="main-photo-container">
-                                    <div
-                                        className={`main-photo-wrapper ${draggedIndex !== null ? 'drop-target' : ''}`}
-                                        draggable
-                                        onDragStart={(e) => handleDragStart(e, 0)}
-                                        onDragOver={(e) => handleDragOver(e, 0)}
-                                        onDrop={(e) => handleDrop(e, 0)}
-                                        onDragEnd={handleDragEnd}
-                                    >
+                                    <div className="main-photo-wrapper">
                                         <img
-                                            src={URL.createObjectURL(images[0])}
+                                            src={existingImages.length > 0 ? existingImages[0] : URL.createObjectURL(images[0])}
                                             alt="Main product"
                                             className="main-photo-img"
                                         />
@@ -293,7 +460,8 @@ const MyItemsPage = () => {
                                             onClick={(e) => {
                                                 e.preventDefault();
                                                 e.stopPropagation();
-                                                removeImage(0);
+                                                if (existingImages.length > 0) removeExistingImage(0);
+                                                else removeImage(0);
                                             }}
                                             type="button"
                                         >
@@ -301,15 +469,15 @@ const MyItemsPage = () => {
                                         </button>
                                     </div>
                                     <p className="main-photo-tip">
-                                        💡 Drag images to reorder • This will be shown on the main page
+                                        💡 This will be shown on the main page
                                     </p>
                                 </div>
 
                                 {/* Additional photos grid */}
                                 <div className="additional-photos">
                                     <div className="additional-photos-header">
-                                        <h4 className="additional-photos-title">Additional Photos ({images.length - 1}/7)</h4>
-                                        {images.length < 8 && (
+                                        <h4 className="additional-photos-title">Additional Photos ({existingImages.length + images.length - 1}/7)</h4>
+                                        {existingImages.length + images.length < 8 && (
                                             <label htmlFor="imageUpload" className="add-more-btn">
                                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                                     <line x1="12" y1="5" x2="12" y2="19"></line>
@@ -321,28 +489,40 @@ const MyItemsPage = () => {
                                     </div>
 
                                     <div className="photos-thumbnail-grid">
-                                        {images.slice(1).map((image, index) => (
-                                            <div
-                                                key={index + 1}
-                                                className={`photo-thumbnail ${draggedIndex === index + 1 ? 'dragging' : ''}`}
-                                                draggable
-                                                onDragStart={(e) => handleDragStart(e, index + 1)}
-                                                onDragOver={(e) => handleDragOver(e, index + 1)}
-                                                onDrop={(e) => handleDrop(e, index + 1)}
-                                                onDragEnd={handleDragEnd}
-                                            >
-                                                <img
-                                                    src={URL.createObjectURL(image)}
-                                                    alt={`Product ${index + 2}`}
-                                                    className="photo-thumbnail-img"
-                                                />
+                                        {/* Render remaining Existing Images */}
+                                        {existingImages.slice(1).map((imgUrl, index) => (
+                                            <div key={`existing-${index}`} className="photo-thumbnail">
+                                                <img src={imgUrl} alt={`Product existing ${index + 2}`} className="photo-thumbnail-img" />
                                                 <div className="photo-thumbnail-number">{index + 2}</div>
                                                 <button
                                                     className="photo-thumbnail-remove"
                                                     onClick={(e) => {
                                                         e.preventDefault();
                                                         e.stopPropagation();
-                                                        removeImage(index + 1);
+                                                        removeExistingImage(index + 1);
+                                                    }}
+                                                    type="button"
+                                                >
+                                                    ✕
+                                                </button>
+                                            </div>
+                                        ))}
+
+                                        {/* Render remaining New Images */}
+                                        {/* If existingImages has items, render all new images. If existingImages is empty, skip the first new image (main) */}
+                                        {(existingImages.length > 0 ? images : images.slice(1)).map((image, index) => (
+                                            <div key={`new-${index}`} className="photo-thumbnail">
+                                                <img src={URL.createObjectURL(image)} alt={`Product new ${index}`} className="photo-thumbnail-img" />
+                                                <div className="photo-thumbnail-number">
+                                                    {existingImages.length > 0 ? existingImages.length + index + 1 : index + 2}
+                                                </div>
+                                                <button
+                                                    className="photo-thumbnail-remove"
+                                                    onClick={(e) => {
+                                                        e.preventDefault();
+                                                        e.stopPropagation();
+                                                        if (existingImages.length > 0) removeImage(index);
+                                                        else removeImage(index + 1);
                                                     }}
                                                     type="button"
                                                 >
@@ -352,7 +532,7 @@ const MyItemsPage = () => {
                                         ))}
 
                                         {/* Add more placeholder */}
-                                        {images.length < 8 && (
+                                        {existingImages.length + images.length < 8 && (
                                             <label htmlFor="imageUpload" className="photo-thumbnail photo-thumbnail-add">
                                                 <div className="photo-add-icon">
                                                     <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -668,7 +848,28 @@ const MyItemsPage = () => {
                         <p className="terms-text">
                             By listing this item, you agree to our <a href="#">Seller Terms</a> and <a href="#">Fees Policy</a>
                         </p>
-                        <button className="submit-button" onClick={handleSubmit}>🚀 List Item</button>
+                        <div style={{ display: 'flex', gap: '1rem' }}>
+                            {editingProductId && (
+                                <button 
+                                    className="submit-button" 
+                                    style={{ background: '#e0e0e0', color: '#333' }}
+                                    onClick={() => {
+                                        setEditingProductId(null);
+                                        setTitle('');
+                                        setDescription('');
+                                        setPrice('');
+                                        setQuantity(1);
+                                        setImages([]);
+                                        setExistingImages([]);
+                                    }}
+                                >
+                                    Cancel
+                                </button>
+                            )}
+                            <button className="submit-button" onClick={handleSubmit}>
+                                {editingProductId ? '💾 Update Item' : '🚀 List Item'}
+                            </button>
+                        </div>
                     </section>
                 </div>
 
@@ -677,7 +878,13 @@ const MyItemsPage = () => {
                     <div className="preview-card">
                         <h3 className="preview-title">Preview</h3>
                         <div className="preview-image">
-                            {images.length > 0 ? (
+                            {existingImages.length > 0 ? (
+                                <img
+                                    src={existingImages[0]}
+                                    alt="preview"
+                                    style={{width: '100%', height: '100%', objectFit: 'cover', borderRadius: '16px'}}
+                                />
+                            ) : images.length > 0 ? (
                                 <img
                                     src={URL.createObjectURL(images[0])}
                                     alt="preview"
@@ -709,6 +916,7 @@ const MyItemsPage = () => {
                     </div>
                 </aside>
             </div>
+            )}
         </div>
     );
 };

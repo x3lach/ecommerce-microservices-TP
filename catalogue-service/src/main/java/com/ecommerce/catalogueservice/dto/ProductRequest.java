@@ -9,6 +9,7 @@ public class ProductRequest {
     private String description;
     private BigDecimal price;
     private Integer stockQuantity;
+    private String condition;
     private UUID categoryId;
     private UUID brandId;
     private String sku;
@@ -50,6 +51,14 @@ public class ProductRequest {
 
     public void setStockQuantity(Integer stockQuantity) {
         this.stockQuantity = stockQuantity;
+    }
+
+    public String getCondition() {
+        return condition;
+    }
+
+    public void setCondition(String condition) {
+        this.condition = condition;
     }
 
     public UUID getCategoryId() {

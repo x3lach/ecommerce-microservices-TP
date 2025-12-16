@@ -57,6 +57,9 @@ const CheckoutPage = () => {
                         isDefault: true
                     };
 
+                    // Check if primary address is valid (has minimum required fields)
+                    const hasValidPrimaryAddress = userData.addressLine1 && userData.city && userData.country;
+
                     // Fetch other addresses
                     const addressesResponse = await fetch(`http://localhost:8081/api/v1/users/${user.id}/addresses`, {
                         headers: { 'Authorization': `Bearer ${token}` }
@@ -67,9 +70,21 @@ const CheckoutPage = () => {
                         otherAddresses = await addressesResponse.json();
                     }
 
-                    const allAddresses = [defaultAddress, ...otherAddresses.filter(a => !a.isDefault)];
+                    // Filter valid addresses from others
+                    const validOtherAddresses = otherAddresses.filter(a => a.addressLine1 && a.city && a.country);
+                    
+                    const allAddresses = [];
+                    if (hasValidPrimaryAddress) allAddresses.push(defaultAddress);
+                    allAddresses.push(...validOtherAddresses.filter(a => !a.isDefault));
+
+                    if (allAddresses.length === 0) {
+                        alert("You must provide a valid delivery address before placing an order. Please update your profile.");
+                        navigate('/profile');
+                        return;
+                    }
+
                     setAddresses(allAddresses);
-                    setSelectedAddress(defaultAddress);
+                    setSelectedAddress(allAddresses[0]);
                 }
 
                 // If coming from Buy Now, use the product directly
@@ -186,6 +201,12 @@ const CheckoutPage = () => {
     const handleConfirmOrder = async () => {
         if (!selectedAddress || !selectedShipping) {
             alert('Please select an address and shipping method');
+            return;
+        }
+
+        // Validate address completeness
+        if (!selectedAddress.addressLine1 || !selectedAddress.city || !selectedAddress.country || !selectedAddress.postalCode) {
+            alert('The selected address is incomplete. Please select a valid address or update your profile.');
             return;
         }
 

@@ -183,4 +183,21 @@ public class UserServiceImpl implements UserService {
                 .profileImageUrl(user.getProfileImageUrl())
                 .build();
     }
+
+    @Override
+    public UserResponse upgradeToSeller(UUID userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        // Only upgrade if not already a seller or admin
+        if (user.getRole() == org.example.userservice.model.Role.CLIENT) {
+            user.setRole(org.example.userservice.model.Role.SELLER);
+            User saved = userRepository.save(user);
+            log.info("User {} upgraded to SELLER role", userId);
+            return toUserResponse(saved);
+        }
+
+        // Already a seller or admin, return as is
+        return toUserResponse(user);
+    }
 }

@@ -16,4 +16,5 @@ public interface UserService {
     UserResponse update(UserRequest request);
     void delete(UUID id);
     UserResponse updateProfileImage(UUID userId, MultipartFile file);
+    UserResponse upgradeToSeller(UUID userId);
 }

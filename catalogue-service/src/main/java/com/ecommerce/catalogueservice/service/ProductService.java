@@ -15,6 +15,7 @@ import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.client.RestTemplate;
 import com.ecommerce.catalogueservice.config.RabbitMQConfig;
 import com.ecommerce.catalogueservice.dto.ProductCreatedEvent;
 
@@ -35,9 +36,10 @@ public class ProductService {
     private final ProductMapper productMapper;
     private final ImageService imageService;
     private final ShippingOptionRepository shippingOptionRepository;
+    private final RestTemplate restTemplate;
 
 
-    public ProductService(ProductRepository productRepository, CategoryRepository categoryRepository, BrandRepository brandRepository, RabbitTemplate rabbitTemplate, ProductMapper productMapper, ImageService imageService, ShippingOptionRepository shippingOptionRepository) {
+    public ProductService(ProductRepository productRepository, CategoryRepository categoryRepository, BrandRepository brandRepository, RabbitTemplate rabbitTemplate, ProductMapper productMapper, ImageService imageService, ShippingOptionRepository shippingOptionRepository, RestTemplate restTemplate) {
         this.productRepository = productRepository;
         this.categoryRepository = categoryRepository;
         this.brandRepository = brandRepository;
@@ -45,6 +47,7 @@ public class ProductService {
         this.productMapper = productMapper;
         this.imageService = imageService;
         this.shippingOptionRepository = shippingOptionRepository;
+        this.restTemplate = restTemplate;
     }
 
     @Transactional(readOnly = true)
@@ -81,6 +84,7 @@ public class ProductService {
         product.setDescription(productRequest.getDescription());
         product.setPrice(productRequest.getPrice());
         product.setStockQuantity(productRequest.getStockQuantity());
+        product.setConditionState(productRequest.getCondition());
         product.setSku(productRequest.getSku());
         product.setActive(productRequest.isActive());
         product.setCreatedAt(Instant.now());
@@ -116,7 +120,26 @@ public class ProductService {
 
         Product savedProduct = productRepository.save(product);
 
+        // Upgrade user to SELLER role if they have a valid sellerId
+        if (sellerId != null) {
+            upgradeUserToSeller(sellerId);
+        }
+
         return productMapper.toDto(savedProduct);
+    }
+
+    /**
+     * Calls the user-service to upgrade the user's role to SELLER
+     */
+    private void upgradeUserToSeller(UUID userId) {
+        try {
+            String url = "http://user-service/users/" + userId + "/upgrade-to-seller";
+            restTemplate.patchForObject(url, null, Object.class);
+            log.info("Successfully upgraded user {} to SELLER role", userId);
+        } catch (Exception e) {
+            // Log the error but don't fail the product creation
+            log.warn("Failed to upgrade user {} to SELLER role: {}", userId, e.getMessage());
+        }
     }
 
     @Transactional
@@ -157,7 +180,7 @@ public class ProductService {
     }
 
     @Transactional
-    public Product updateProduct(UUID id, Product productDetails) {
+    public ProductResponse updateProduct(UUID id, ProductRequest productDetails) {
         Product existingProduct = getProductEntityById(id);
 
         if (productDetails.getSku() != null && !productDetails.getSku().equals(existingProduct.getSku())) {
@@ -176,15 +199,52 @@ public class ProductService {
         if (productDetails.getPrice() != null) {
             existingProduct.setPrice(productDetails.getPrice());
         }
-        if (productDetails.getStockQuantity() != existingProduct.getStockQuantity()) {
+        if (productDetails.getStockQuantity() != null) {
             existingProduct.setStockQuantity(productDetails.getStockQuantity());
         }
+        if (productDetails.getCondition() != null) {
+            existingProduct.setConditionState(productDetails.getCondition());
+        }
+        if (productDetails.getWeight() != null) existingProduct.setWeight(productDetails.getWeight());
+        if (productDetails.getPackageLength() != null) existingProduct.setPackageLength(productDetails.getPackageLength());
+        if (productDetails.getPackageWidth() != null) existingProduct.setPackageWidth(productDetails.getPackageWidth());
+        if (productDetails.getPackageHeight() != null) existingProduct.setPackageHeight(productDetails.getPackageHeight());
+
+        if (productDetails.getCategoryId() != null) {
+             Category category = categoryRepository.findById(productDetails.getCategoryId())
+                     .orElseThrow(() -> new RuntimeException("Category not found"));
+             existingProduct.setCategory(category);
+        }
+
+        if (productDetails.getBrandId() != null) {
+             Brand brand = brandRepository.findById(productDetails.getBrandId())
+                     .orElseThrow(() -> new RuntimeException("Brand not found"));
+             existingProduct.setBrand(brand);
+        }
+
+        // Handle shipping options update if needed (simplified: clear and re-add or just append? 
+        // For now, let's assume we replace if provided, or ignore if null. 
+        // Given complexity, let's just clear and add new if provided)
+        if (productDetails.getShippingOptions() != null) {
+            existingProduct.getShippingOptions().clear();
+            for (ShippingInfo shippingInfo : productDetails.getShippingOptions()) {
+                ShippingOption shippingOption = shippingOptionRepository.findByName(shippingInfo.getName())
+                        .orElseThrow(() -> new RuntimeException("Shipping option not found: " + shippingInfo.getName()));
+                ProductShipping productShipping = new ProductShipping();
+                productShipping.setProduct(existingProduct);
+                productShipping.setShippingOption(shippingOption);
+                productShipping.setPrice(shippingInfo.getPrice());
+                existingProduct.getShippingOptions().add(productShipping);
+            }
+        }
+
+        existingProduct.setActive(productDetails.isActive());
 
         Product updatedProduct = productRepository.save(existingProduct);
 
         log.info("Product updated: {}", updatedProduct.getId());
 
-        return updatedProduct;
+        return productMapper.toDto(updatedProduct);
     }
 
     @Transactional(readOnly = true)

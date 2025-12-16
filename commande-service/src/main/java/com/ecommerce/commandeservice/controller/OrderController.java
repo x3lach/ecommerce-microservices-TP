@@ -38,4 +38,20 @@ public class OrderController {
         List<Order> orders = orderService.getOrdersByUserId(UUID.fromString(userId));
         return ResponseEntity.ok(orders);
     }
+
+    @GetMapping("/{orderId}")
+    public ResponseEntity<Order> getOrderById(
+            @PathVariable UUID orderId,
+            @RequestHeader("X-User-Id") String userId) {
+        Order order = orderService.getOrderById(orderId, UUID.fromString(userId));
+        return ResponseEntity.ok(order);
+    }
+
+    @PatchMapping("/{orderId}/confirm")
+    public ResponseEntity<Order> confirmOrderReceived(
+            @PathVariable UUID orderId,
+            @RequestHeader("X-User-Id") String userId) {
+        Order order = orderService.confirmOrderReceived(orderId, UUID.fromString(userId));
+        return ResponseEntity.ok(order);
+    }
 }

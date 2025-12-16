@@ -135,6 +135,24 @@ public class OrderService {
         return orderRepository.findByUserIdOrderByCreatedAtDesc(userId);
     }
 
+    public Order getOrderById(UUID orderId, UUID userId) {
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new IllegalArgumentException("Order not found: " + orderId));
+        if (!order.getUserId().equals(userId)) {
+            throw new IllegalArgumentException("Order does not belong to user");
+        }
+        return order;
+    }
+
+    public Order confirmOrderReceived(UUID orderId, UUID userId) {
+        Order order = getOrderById(orderId, userId);
+        if (!"PENDING".equals(order.getStatus())) {
+            throw new IllegalStateException("Order is not in PENDING status");
+        }
+        order.setStatus("CONFIRMED");
+        return orderRepository.save(order);
+    }
+
     private OrderCreatedEvent createOrderEvent(Order order) {
         OrderCreatedEvent event = new OrderCreatedEvent();
         event.setOrderId(order.getId());
