@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useContext } from 'react';
+import Header from '../components/Header';
+import CartContext from '../context/CartContext';
 import './MainPage.css';
 import { useNavigate } from 'react-router-dom';
-import AuthContext from '../context/AuthContext';
-import logo from '/logo.png';
 
 const getInitials = (fullName) => {
     if (!fullName) return '';
@@ -14,7 +14,6 @@ const getInitials = (fullName) => {
 
 const MainPage = () => {
     const [sidebarHidden, setSidebarHidden] = useState(false);
-    const [profileDropdownActive, setProfileDropdownActive] = useState(false);
     const [products, setProducts] = useState([]);
     const [filteredProducts, setFilteredProducts] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -29,8 +28,7 @@ const MainPage = () => {
     const [selectedBrands, setSelectedBrands] = useState([]);
 
     const navigate = useNavigate();
-    const { user } = useContext(AuthContext);
-    const [userDetails, setUserDetails] = useState(null);
+    const { addToCart } = useContext(CartContext);
 
     // Fetch initial data
     useEffect(() => {
@@ -78,8 +76,6 @@ const MainPage = () => {
 
         // Category Filter
         if (selectedCategories.length > 0) {
-            // Check against categoryName (since product has categoryName flattened in DTO) or fetch full structure if needed.
-            // Assuming product.categoryName is available as per DTO.
             result = result.filter(p => selectedCategories.includes(p.categoryName));
         }
 
@@ -107,101 +103,17 @@ const MainPage = () => {
         );
     };
 
-    useEffect(() => {
-        if (user) {
-            const token = localStorage.getItem('token');
-            fetch(`http://localhost:8081/api/v1/users/${user.id}`, {
-                headers: { 'Authorization': `Bearer ${token}` }
-            })
-            .then(response => response.json())
-            .then(data => setUserDetails(data))
-            .catch(error => console.error('Failed to fetch user details', error));
-        }
-    }, [user]);
-
-
     const toggleSidebar = () => {
         setSidebarHidden(!sidebarHidden);
     };
 
-    const toggleProfile = () => {
-        setProfileDropdownActive(!profileDropdownActive);
-    };
-
-    const handleLogout = () => {
-        if (confirm('Are you sure you want to logout?')) {
-            alert('Logging out...');
-            localStorage.removeItem('token');
-            navigate('/login');
-        }
-    };
-
-    useEffect(() => {
-        const closeDropdown = (event) => {
-            const profileWrapper = document.querySelector('.profile-wrapper');
-            if (profileWrapper && !profileWrapper.contains(event.target)) {
-                setProfileDropdownActive(false);
-            }
-        };
-
-        document.addEventListener('click', closeDropdown);
-
-        return () => {
-            document.removeEventListener('click', closeDropdown);
-        };
-    }, []);
-
     return (
         <>
-            <header>
-                <div className="header-left">
-                    <button className="menu-toggle" onClick={toggleSidebar}>☰</button>
-                    <div className="logo-container" onClick={() => navigate('/')}>
-                        <img src={logo} alt="SouqUp Logo" className="logo-img logo-img-large" />
-                        <img src="/SouqUp.png" alt="SouqUp" className="logo-img" />
-                    </div>
-                </div>
-
-                <div className="search-container">
-                    <span className="search-icon">🔍</span>
-                    <input 
-                        type="text" 
-                        className="search-bar" 
-                        placeholder="Search products..." 
-                        value={filterName}
-                        onChange={(e) => setFilterName(e.target.value)}
-                    />
-                </div>
-
-                <div className="header-actions">
-                    <button className="icon-button">
-                        🛒
-                        <span className="cart-badge">3</span>
-                    </button>
-                    <div className="profile-wrapper">
-                        {userDetails && (
-                            <div className="profile-avatar-header" onClick={toggleProfile} title="Profile options">
-                                {userDetails.profileImageUrl ? (
-                                    <img src={userDetails.profileImageUrl} alt="Profile" />
-                                ) : (
-                                    getInitials(userDetails.fullName)
-                                )}
-                            </div>
-                        )}
-                        <div className={`profile-dropdown ${profileDropdownActive ? 'active' : ''}`} id="profileDropdown">
-                                                    <button className="dropdown-item" onClick={() => navigate('/profile')}>
-                                                        <span>View Profile</span>
-                                                    </button>
-                                                    <button className="dropdown-item" onClick={() => navigate('/my-items')}>
-                                                        <span>My Items</span>
-                                                    </button>
-                                                    <button className="dropdown-item logout" onClick={handleLogout}>
-                                <span>Logout</span>
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </header>
+            <Header 
+                toggleSidebar={toggleSidebar} 
+                onSearchChange={setFilterName} 
+                initialSearchValue={filterName}
+            />
 
             <div className="main-container">
                 <aside className={`sidebar ${sidebarHidden ? 'hidden' : ''}`} id="sidebar">
@@ -310,33 +222,40 @@ const MainPage = () => {
                         ) : (
                             filteredProducts.map(product => (
                                 <article className="product-card" key={product.id} onClick={() => navigate(`/product/${product.id}`)}>
-                                    <div className="product-image">
+                                    <div className="product-image-container">
                                         {product.imageUrls && product.imageUrls.length > 0 ? (
                                             <img
                                                 src={`http://localhost:8081${product.imageUrls[0]}`}
                                                 alt={product.name}
-                                                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                                className="product-img"
                                             />
                                         ) : (
-                                            <div className="no-image-placeholder" style={{
-                                                width: '100%',
-                                                height: '100%',
-                                                display: 'flex',
-                                                alignItems: 'center',
-                                                justifyContent: 'center',
-                                                backgroundColor: '#f0f0f0',
-                                                fontSize: '3rem'
-                                            }}>
-                                                📦
-                                            </div>
+                                            <div className="no-image-placeholder">📦</div>
+                                        )}
+                                        {product.condition && (
+                                            <span className="product-badge condition-badge">{product.condition}</span>
                                         )}
                                     </div>
                                     <div className="product-info">
-                                        <p className="product-category">{product.categoryName || 'Uncategorized'}</p>
-                                        <h3 className="product-title">{product.name}</h3>
+                                        <div className="product-meta">
+                                            <span className="product-category">{product.categoryName || 'General'}</span>
+                                            {product.brandName && <span className="product-brand">• {product.brandName}</span>}
+                                        </div>
+                                        <h3 className="product-title" title={product.name}>{product.name}</h3>
                                         <div className="product-footer">
-                                            <span className="product-price">${product.price}</span>
-                                            <div className="product-icon">🏷️</div>
+                                            <div className="price-container">
+                                                <span className="product-price">${product.price.toFixed(2)}</span>
+                                            </div>
+                                            <button 
+                                                className="add-to-cart-btn"
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    addToCart(product.id);
+                                                }}
+                                                title="Add to Cart"
+                                            >
+                                                🛒
+                                            </button>
                                         </div>
                                     </div>
                                 </article>

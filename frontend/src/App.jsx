@@ -26,6 +26,7 @@ import ProfilePage from './pages/ProfilePage';
 import MyItemsPage from './pages/MyItemsPage';
 import ProductPage from './pages/ProductPage';
 import CheckoutPage from './pages/CheckoutPage';
+import CartPage from './pages/CartPage';
 
 
 
@@ -34,6 +35,7 @@ import ProtectedRoute from './utils/ProtectedRoute';
 
 
 import { AuthProvider } from './context/AuthContext';
+import { CartProvider } from './context/CartContext';
 
 
 
@@ -54,7 +56,7 @@ function App() {
 
 
             <AuthProvider>
-
+                <CartProvider>
 
 
                 <Routes>
@@ -83,6 +85,7 @@ function App() {
 
                         <Route path="/profile" element={<ProfilePage />} />
                         <Route path="/my-items" element={<MyItemsPage />} />
+                        <Route path="/cart" element={<CartPage />} />
                         <Route path="/checkout" element={<CheckoutPage />} />
 
 
@@ -92,7 +95,7 @@ function App() {
 
 
                 </Routes>
-
+                </CartProvider>
 
 
             </AuthProvider>

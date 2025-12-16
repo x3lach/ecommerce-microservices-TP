@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import './ProductPage.css';
 import logo from '/logo.png';
 import AuthContext from '../context/AuthContext';
+import CartContext from '../context/CartContext';
 
 const getInitials = (fullName) => {
     if (!fullName) return '';
@@ -16,6 +17,7 @@ const ProductPage = () => {
     const { id } = useParams();
     const navigate = useNavigate();
     const { user } = useContext(AuthContext);
+    const { addToCart, cartCount } = useContext(CartContext);
 
     const [product, setProduct] = useState(null);
     const [seller, setSeller] = useState(null);
@@ -26,7 +28,6 @@ const ProductPage = () => {
     const [showNotification, setShowNotification] = useState(false);
     const [userDetails, setUserDetails] = useState(null);
     const [profileDropdownActive, setProfileDropdownActive] = useState(false);
-    const [cartCount, setCartCount] = useState(0);
 
     // Fetch product data
     useEffect(() => {
@@ -72,17 +73,6 @@ const ProductPage = () => {
                 .then(response => response.json())
                 .then(data => setUserDetails(data))
                 .catch(error => console.error('Error fetching user details:', error));
-
-            // Fetch cart count
-            fetch(`http://localhost:8081/api/v1/cart`, {
-                headers: { 'Authorization': `Bearer ${token}` }
-            })
-                .then(response => response.json())
-                .then(data => {
-                    const count = data.items?.reduce((sum, item) => sum + item.quantity, 0) || 0;
-                    setCartCount(count);
-                })
-                .catch(error => console.error('Error fetching cart:', error));
         }
     }, [user]);
 
@@ -122,36 +112,16 @@ const ProductPage = () => {
         }
     };
 
-    const addToCart = async () => {
+    const handleAddToCart = async () => {
         if (!user) {
             navigate('/login');
             return;
         }
 
-        const token = localStorage.getItem('token');
-        try {
-            const response = await fetch('http://localhost:8081/api/v1/cart/items', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
-                body: JSON.stringify({
-                    productId: product.id,
-                    quantity: quantity
-                })
-            });
-
-            if (response.ok) {
-                setShowNotification(true);
-                setCartCount(cartCount + quantity);
-                setTimeout(() => setShowNotification(false), 3500);
-            } else {
-                alert('Failed to add to cart');
-            }
-        } catch (error) {
-            console.error('Error adding to cart:', error);
-            alert('Error adding to cart');
+        const success = await addToCart(product.id, quantity);
+        if (success) {
+            setShowNotification(true);
+            setTimeout(() => setShowNotification(false), 3500);
         }
     };
 
@@ -361,8 +331,8 @@ const ProductPage = () => {
                         </div>
 
                         <button
-                            className="add-to-cart-btn"
-                            onClick={addToCart}
+                            className="product-page-add-btn"
+                            onClick={handleAddToCart}
                             disabled={product.stockQuantity <= 0}
                         >
                             🛒 Add to Cart

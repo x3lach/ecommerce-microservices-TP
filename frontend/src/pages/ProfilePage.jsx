@@ -1,7 +1,7 @@
 import React, { useContext, useEffect, useState, useCallback, useRef } from 'react';
 import './ProfilePage.css';
 import { useNavigate } from 'react-router-dom';
-import logo from '/logo.png';
+import Header from '../components/Header';
 import AuthContext from '../context/AuthContext';
 
 const getInitials = (fullName) => {
@@ -456,33 +456,8 @@ const ProfilePage = () => {
     }
 
     return (
-        <div>
-            <header>
-                    <div className="logo-container" onClick={() => navigate('/')}>
-                        <img src={logo} alt="SouqUp Logo" className="logo-img logo-img-large" />
-                        <img src="/SouqUp.png" alt="SouqUp" className="logo-img" />
-                    </div>
-                    <div className="profile-wrapper">
-                        <div className="profile-avatar-header" onClick={toggleProfile} title="Profile options">
-                            {userDetails.profileImageUrl ? (
-                                <img src={userDetails.profileImageUrl} alt="Profile" />
-                            ) : (
-                                getInitials(userDetails.fullName)
-                            )}
-                        </div>
-                        <div className={`profile-dropdown ${profileDropdownActive ? 'active' : ''}`} id="profileDropdown">
-                                                    <button className="dropdown-item" onClick={() => navigate('/profile')}>
-                                                        <span>View Profile</span>
-                                                    </button>
-                                                    <button className="dropdown-item" onClick={() => navigate('/my-items')}>
-                                                        <span>My Items</span>
-                                                    </button>
-                                                    <button className="dropdown-item logout" onClick={handleLogout}>
-                                <span>Logout</span>
-                            </button>
-                        </div>
-                    </div>
-                </header>
+        <div style={{ backgroundColor: '#FFFBF5', minHeight: '100vh' }}>
+            <Header />
 
             <div className="profile-container">
                 <aside className="profile-sidebar">

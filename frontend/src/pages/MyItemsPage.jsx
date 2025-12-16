@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import AuthContext from '../context/AuthContext';
+import Header from '../components/Header';
 import './MyItemsPage.css';
 
 const MyItemsPage = () => {
@@ -328,19 +329,8 @@ const MyItemsPage = () => {
     ];
 
     return (
-        <div>
-            {/* HEADER */}
-            <header>
-                <div className="header-content">
-                    <div className="header-left">
-                        <button className="back-button" onClick={() => navigate(-1)}>
-                            ← Back
-                        </button>
-                        <h1 className="header-title">List Your Item</h1>
-                    </div>
-                    <button className="save-draft-btn">💾 Save Draft</button>
-                </div>
-            </header>
+        <div style={{ backgroundColor: '#FFFBF5', minHeight: '100vh' }}>
+            <Header />
 
             {/* TABS */}
             <div className="tabs-container">
