@@ -13,7 +13,7 @@ const getInitials = (fullName) => {
     return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
 };
 
-const Header = ({ toggleSidebar, onSearchChange, initialSearchValue }) => {
+const Header = ({ toggleSidebar, onSearchChange, initialSearchValue, showSearch = true }) => {
     const navigate = useNavigate();
     const { user } = useContext(AuthContext);
     const { cartCount } = useContext(CartContext);
@@ -75,16 +75,18 @@ const Header = ({ toggleSidebar, onSearchChange, initialSearchValue }) => {
                 </div>
             </div>
 
-            <div className="search-container">
-                <span className="search-icon">🔍</span>
-                <input 
-                    type="text" 
-                    className="search-bar" 
-                    placeholder="Search products..." 
-                    value={searchValue}
-                    onChange={handleSearchChange}
-                />
-            </div>
+            {showSearch && (
+                <div className="search-container">
+                    <span className="search-icon">🔍</span>
+                    <input 
+                        type="text" 
+                        className="search-bar" 
+                        placeholder="Search products..." 
+                        value={searchValue}
+                        onChange={handleSearchChange}
+                    />
+                </div>
+            )}
 
             <div className="header-actions">
                 <button className="icon-button" onClick={() => navigate('/cart')}>

@@ -19,6 +19,8 @@ const ProfilePage = () => {
     const [orders, setOrders] = useState([]);
     const [sellerProducts, setSellerProducts] = useState([]);
     const [editableFields, setEditableFields] = useState({
+        firstName: '',
+        lastName: '',
         phone: '',
     });
     const [addresses, setAddresses] = useState([]);
@@ -76,7 +78,17 @@ const ProfilePage = () => {
                 if (!userResponse.ok) throw new Error('Failed to fetch user details');
                 const userData = await userResponse.json();
                 setUserDetails(userData);
-                setEditableFields({ phone: userData.phone || '' });
+
+                // Split fullName into first and last name
+                const nameParts = userData.fullName ? userData.fullName.split(' ') : ['', ''];
+                const fName = nameParts[0] || '';
+                const lName = nameParts.slice(1).join(' ') || '';
+
+                setEditableFields({ 
+                    firstName: fName,
+                    lastName: lName,
+                    phone: userData.phone || '' 
+                });
 
                 // Create the default address object from user data
                 const defaultAddress = {
@@ -172,21 +184,55 @@ const ProfilePage = () => {
                     body: JSON.stringify(updatedData)
                 });
                 if (response.ok) {
-                    setUserDetails(await response.json());
+                    const updatedUser = await response.json();
+                    setUserDetails(updatedUser);
+                    
+                    // Update editable fields
+                    const nameParts = updatedUser.fullName ? updatedUser.fullName.split(' ') : ['', ''];
+                    setEditableFields({
+                        firstName: nameParts[0] || '',
+                        lastName: nameParts.slice(1).join(' ') || '',
+                        phone: updatedUser.phone || ''
+                    });
+                    
                     console.log(`${field} updated successfully`);
                 } else {
                     console.error(`Failed to update ${field}`);
-                    setEditableFields(prev => ({ ...prev, [field]: userDetails[field] || '' }));
+                    // Revert state if failed
+                    const nameParts = userDetails.fullName ? userDetails.fullName.split(' ') : ['', ''];
+                    setEditableFields({
+                        firstName: nameParts[0] || '',
+                        lastName: nameParts.slice(1).join(' ') || '',
+                        phone: userDetails.phone || ''
+                    });
                 }
             } catch (error) {
                 console.error(`Error updating ${field}:`, error);
-                setEditableFields(prev => ({ ...prev, [field]: userDetails[field] || '' }));
+                const nameParts = userDetails.fullName ? userDetails.fullName.split(' ') : ['', ''];
+                setEditableFields({
+                    firstName: nameParts[0] || '',
+                    lastName: nameParts.slice(1).join(' ') || '',
+                    phone: userDetails.phone || ''
+                });
             }
         }
     };
 
     const handleBlur = (field) => {
-        if (editableFields[field] !== (userDetails?.[field] || '')) {
+        if (field === 'firstName' || field === 'lastName') {
+            const currentFullName = userDetails?.fullName || '';
+            const nameParts = currentFullName.split(' ');
+            const currentFirstName = nameParts[0] || '';
+            const currentLastName = nameParts.slice(1).join(' ') || '';
+
+            if (field === 'firstName' && editableFields.firstName !== currentFirstName) {
+                const newFullName = `${editableFields.firstName} ${currentLastName}`.trim();
+                updateUserField('fullName', newFullName);
+            } else if (field === 'lastName' && editableFields.lastName !== currentLastName) {
+                const newFullName = `${currentFirstName} ${editableFields.lastName}`.trim();
+                updateUserField('fullName', newFullName);
+            }
+        } else if (editableFields[field] !== (userDetails?.[field] || '')) {
             updateUserField(field, editableFields[field]);
         }
     };
@@ -457,7 +503,7 @@ const ProfilePage = () => {
 
     return (
         <div style={{ backgroundColor: '#FFFBF5', minHeight: '100vh' }}>
-            <Header />
+            <Header showSearch={false} />
 
             <div className="profile-container">
                 <aside className="profile-sidebar">
@@ -486,8 +532,28 @@ const ProfilePage = () => {
                         </div>
                         <div className="info-grid">
                             <div className="info-item">
-                                <label className="info-label">Full Name</label>
-                                <div className="info-value">{userDetails.fullName}</div>
+                                <label className="info-label">First Name</label>
+                                <input
+                                    type="text"
+                                    className="info-value editable-field"
+                                    value={editableFields.firstName}
+                                    onChange={(e) => handleFieldChange('firstName', e.target.value)}
+                                    onBlur={() => handleBlur('firstName')}
+                                    onKeyDown={handleKeyPress}
+                                    placeholder="Enter first name"
+                                />
+                            </div>
+                            <div className="info-item">
+                                <label className="info-label">Last Name</label>
+                                <input
+                                    type="text"
+                                    className="info-value editable-field"
+                                    value={editableFields.lastName}
+                                    onChange={(e) => handleFieldChange('lastName', e.target.value)}
+                                    onBlur={() => handleBlur('lastName')}
+                                    onKeyDown={handleKeyPress}
+                                    placeholder="Enter last name"
+                                />
                             </div>
                             <div className="info-item">
                                 <label className="info-label">Email Address</label>

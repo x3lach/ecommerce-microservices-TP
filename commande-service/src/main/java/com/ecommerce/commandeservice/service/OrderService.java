@@ -6,6 +6,7 @@ import com.ecommerce.commandeservice.dto.CreateOrderRequest;
 import com.ecommerce.commandeservice.dto.OrderCreatedEvent;
 import com.ecommerce.commandeservice.dto.ProductResponse;
 import com.ecommerce.commandeservice.model.*;
+import com.ecommerce.commandeservice.repository.CartItemRepository;
 import com.ecommerce.commandeservice.repository.CartRepository;
 import com.ecommerce.commandeservice.repository.OrderRepository;
 import org.slf4j.Logger;
@@ -28,17 +29,19 @@ public class OrderService {
     private final OrderRepository orderRepository;
     private final CartService cartService;
     private final CartRepository cartRepository;
+    private final CartItemRepository cartItemRepository;
     private final RestTemplate restTemplate;
     private final RabbitTemplate rabbitTemplate;
 
     private static final Logger log = LoggerFactory.getLogger(OrderService.class);
 
     public OrderService(OrderRepository orderRepository, CartService cartService,
-                        CartRepository cartRepository, RestTemplate restTemplate,
-                        RabbitTemplate rabbitTemplate) {
+                        CartRepository cartRepository, CartItemRepository cartItemRepository,
+                        RestTemplate restTemplate, RabbitTemplate rabbitTemplate) {
         this.orderRepository = orderRepository;
         this.cartService = cartService;
         this.cartRepository = cartRepository;
+        this.cartItemRepository = cartItemRepository;
         this.restTemplate = restTemplate;
         this.rabbitTemplate = rabbitTemplate;
     }
@@ -116,6 +119,7 @@ public class OrderService {
         Order savedOrder = orderRepository.save(order);
 
         // 8. Clear the cart
+        cartItemRepository.deleteAll(cart.getItems());
         cart.getItems().clear();
         cartRepository.save(cart);
 

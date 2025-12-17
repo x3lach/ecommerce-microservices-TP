@@ -4,7 +4,8 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 
 const RegisterPage = () => {
-    const [fullName, setFullName] = useState('');
+    const [firstName, setFirstName] = useState('');
+    const [lastName, setLastName] = useState('');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [role, setRole] = useState('CLIENT');
@@ -14,7 +15,7 @@ const RegisterPage = () => {
         e.preventDefault();
         try {
             await axios.post('http://localhost:8081/api/v1/users', {
-                fullName,
+                fullName: `${firstName} ${lastName}`.trim(),
                 email,
                 password,
                 role,
@@ -30,23 +31,41 @@ const RegisterPage = () => {
             <div className="w-full max-w-md p-8 space-y-6 bg-white rounded-lg shadow-md">
                 <h2 className="text-2xl font-bold text-center text-gray-900">Register</h2>
                 <form className="space-y-6" onSubmit={handleRegister}>
-                    <div>
-                        <label
-                            htmlFor="fullName"
-                            className="text-sm font-medium text-gray-700"
-                        >
-                            Full Name
-                        </label>
-                        <input
-                            id="fullName"
-                            name="fullName"
-                            type="text"
-                            autoComplete="name"
-                            required
-                            value={fullName}
-                            onChange={(e) => setFullName(e.target.value)}
-                            className="block w-full px-3 py-2 mt-1 placeholder-gray-400 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                        />
+                    <div className="flex gap-4">
+                        <div className="flex-1">
+                            <label
+                                htmlFor="firstName"
+                                className="text-sm font-medium text-gray-700"
+                            >
+                                First Name
+                            </label>
+                            <input
+                                id="firstName"
+                                name="firstName"
+                                type="text"
+                                required
+                                value={firstName}
+                                onChange={(e) => setFirstName(e.target.value)}
+                                className="block w-full px-3 py-2 mt-1 placeholder-gray-400 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                            />
+                        </div>
+                        <div className="flex-1">
+                            <label
+                                htmlFor="lastName"
+                                className="text-sm font-medium text-gray-700"
+                            >
+                                Last Name
+                            </label>
+                            <input
+                                id="lastName"
+                                name="lastName"
+                                type="text"
+                                required
+                                value={lastName}
+                                onChange={(e) => setLastName(e.target.value)}
+                                className="block w-full px-3 py-2 mt-1 placeholder-gray-400 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                            />
+                        </div>
                     </div>
                     <div>
                         <label

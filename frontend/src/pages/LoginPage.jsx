@@ -1,6 +1,7 @@
 import React, { useState, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { jwtDecode } from 'jwt-decode';
 import AuthContext from '../context/AuthContext';
 import './LoginPage.css';
 
@@ -41,7 +42,20 @@ const LoginPage = () => {
                 }
             });
             login(response.data);
-            navigate('/');
+            
+            // Check role for redirect
+            try {
+                const decoded = jwtDecode(response.data);
+                if (decoded.role === 'ADMIN') {
+                    navigate('/admin');
+                } else {
+                    navigate('/');
+                }
+            } catch (decodeError) {
+                console.error('Error decoding token for redirect', decodeError);
+                navigate('/');
+            }
+
         } catch (error) {
             console.error('Login failed', error);
         }

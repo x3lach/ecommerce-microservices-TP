@@ -27,6 +27,7 @@ import MyItemsPage from './pages/MyItemsPage';
 import ProductPage from './pages/ProductPage';
 import CheckoutPage from './pages/CheckoutPage';
 import CartPage from './pages/CartPage';
+import AdminPage from './pages/AdminPage';
 
 
 
@@ -71,25 +72,19 @@ function App() {
 
 
 
-                    <Route path="/product/:id" element={<ProductPage />} />
+                    {/* Admin Route */}
+                    <Route element={<ProtectedRoute allowedRoles={['ADMIN']} />}>
+                        <Route path="/admin" element={<AdminPage />} />
+                    </Route>
 
-
-
-                    <Route element={<ProtectedRoute />}>
-
-
-
+                    {/* General Protected Routes (Client/Seller) */}
+                    <Route element={<ProtectedRoute allowedRoles={['CLIENT', 'SELLER']} />}>
                         <Route path="/" element={<MainPage />} />
-
-
-
+                        <Route path="/product/:id" element={<ProductPage />} />
                         <Route path="/profile" element={<ProfilePage />} />
                         <Route path="/my-items" element={<MyItemsPage />} />
                         <Route path="/cart" element={<CartPage />} />
                         <Route path="/checkout" element={<CheckoutPage />} />
-
-
-
                     </Route>
 
 

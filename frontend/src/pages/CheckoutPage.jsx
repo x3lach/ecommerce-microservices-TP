@@ -8,6 +8,7 @@ const CheckoutPage = () => {
     const navigate = useNavigate();
     const location = useLocation();
     const { user } = useContext(AuthContext);
+    const { fetchCart } = useContext(CartContext); // Destructure fetchCart
 
     // Get product and quantity from navigation state (for Buy Now)
     const { product, quantity: initialQuantity } = location.state || {};
@@ -256,6 +257,7 @@ const CheckoutPage = () => {
                 const order = await response.json();
                 setOrderNumber(order.orderNumber);
                 setOrderComplete(true);
+                await fetchCart(); // Refresh global cart state immediately
             } else {
                 const error = await response.json();
                 alert(error.message || 'Failed to create order');

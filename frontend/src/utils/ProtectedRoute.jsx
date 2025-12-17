@@ -2,7 +2,7 @@ import React, { useContext } from 'react';
 import { Navigate, Outlet } from 'react-router-dom';
 import AuthContext from '../context/AuthContext';
 
-const ProtectedRoute = () => {
+const ProtectedRoute = ({ allowedRoles }) => {
     const { user, loading } = useContext(AuthContext);
 
     // Show loading while checking authentication
@@ -19,6 +19,13 @@ const ProtectedRoute = () => {
 
     if (!user) {
         return <Navigate to="/login" />;
+    }
+
+    if (allowedRoles && !allowedRoles.includes(user.role)) {
+        if (user.role === 'ADMIN') {
+            return <Navigate to="/admin" replace />;
+        }
+        return <Navigate to="/" replace />;
     }
 
     return <Outlet />;

@@ -32,6 +32,7 @@ const MyItemsPage = () => {
     const [activeTab, setActiveTab] = useState('addItem');
     const [myProducts, setMyProducts] = useState([]);
     const [editingProductId, setEditingProductId] = useState(null);
+    const [searchTerm, setSearchTerm] = useState('');
 
     // Fetching data
     useEffect(() => {
@@ -330,7 +331,11 @@ const MyItemsPage = () => {
 
     return (
         <div style={{ backgroundColor: '#FFFBF5', minHeight: '100vh' }}>
-            <Header />
+            <Header 
+                onSearchChange={setSearchTerm} 
+                initialSearchValue={searchTerm}
+                showSearch={activeTab === 'modifierItem' && !editingProductId}
+            />
 
             {/* TABS */}
             <div className="tabs-container">
@@ -363,29 +368,39 @@ const MyItemsPage = () => {
                     {myProducts.length === 0 ? (
                         <div className="done-message">You haven't listed any items yet.</div>
                     ) : (
-                        myProducts.map(product => (
-                            <div key={product.id} className="my-product-card">
-                                <div className="my-product-image">
-                                    {product.imageUrls && product.imageUrls.length > 0 ? (
-                                        <img 
-                                            src={product.imageUrls[0].startsWith('http') ? product.imageUrls[0] : `http://localhost:8081${product.imageUrls[0]}`} 
-                                            alt={product.name} 
-                                        />
-                                    ) : (
-                                        <div className="no-image-placeholder">📦</div>
-                                    )}
+                        (() => {
+                            const filteredProducts = myProducts.filter(p => 
+                                p.name.toLowerCase().includes(searchTerm.toLowerCase())
+                            );
+                            
+                            if (filteredProducts.length === 0) {
+                                return <div className="done-message">No products match your search.</div>;
+                            }
+
+                            return filteredProducts.map(product => (
+                                <div key={product.id} className="my-product-card">
+                                    <div className="my-product-image">
+                                        {product.imageUrls && product.imageUrls.length > 0 ? (
+                                            <img 
+                                                src={product.imageUrls[0].startsWith('http') ? product.imageUrls[0] : `http://localhost:8081${product.imageUrls[0]}`} 
+                                                alt={product.name} 
+                                            />
+                                        ) : (
+                                            <div className="no-image-placeholder">📦</div>
+                                        )}
+                                    </div>
+                                    <div className="my-product-info">
+                                        <h3>{product.name}</h3>
+                                        <p className="price">${product.price}</p>
+                                        <p className="condition">{product.condition || 'New'}</p>
+                                    </div>
+                                    <div className="my-product-actions">
+                                        <button className="edit-btn" onClick={() => handleEdit(product)}>Modifier</button>
+                                        <button className="delete-btn" onClick={() => handleDelete(product.id)}>Delete</button>
+                                    </div>
                                 </div>
-                                <div className="my-product-info">
-                                    <h3>{product.name}</h3>
-                                    <p className="price">${product.price}</p>
-                                    <p className="condition">{product.condition || 'New'}</p>
-                                </div>
-                                <div className="my-product-actions">
-                                    <button className="edit-btn" onClick={() => handleEdit(product)}>Modifier</button>
-                                    <button className="delete-btn" onClick={() => handleDelete(product.id)}>Delete</button>
-                                </div>
-                            </div>
-                        ))
+                            ));
+                        })()
                     )}
                 </div>
             ) : (
