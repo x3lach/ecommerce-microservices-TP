@@ -286,19 +286,31 @@ const ProductManagement = () => {
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                     <input 
                         type="number" 
+                        min="0"
                         className="admin-filter-input"
                         placeholder="Min Price"
                         value={minPrice}
-                        onChange={(e) => setMinPrice(e.target.value)}
+                        onChange={(e) => {
+                            const val = e.target.value;
+                            if (val === '' || parseFloat(val) >= 0) {
+                                setMinPrice(val);
+                            }
+                        }}
                         style={{ width: '100px', paddingLeft: '1rem' }}
                     />
                     <span style={{ color: '#94a3b8' }}>-</span>
                     <input 
                         type="number" 
+                        min="0"
                         className="admin-filter-input"
                         placeholder="Max Price"
                         value={maxPrice}
-                        onChange={(e) => setMaxPrice(e.target.value)}
+                        onChange={(e) => {
+                            const val = e.target.value;
+                            if (val === '' || parseFloat(val) >= 0) {
+                                setMaxPrice(val);
+                            }
+                        }}
                         style={{ width: '100px', paddingLeft: '1rem' }}
                     />
                 </div>

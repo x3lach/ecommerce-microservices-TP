@@ -72,6 +72,12 @@ public class ProductController {
         return ResponseEntity.ok(updatedProduct);
     }
 
+    @PutMapping("/{id}/images/order")
+    public ResponseEntity<Void> updateImageOrder(@PathVariable UUID id, @RequestBody List<String> imageUrls) {
+        productService.updateImageOrder(id, imageUrls);
+        return ResponseEntity.ok().build();
+    }
+
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteProduct(@PathVariable UUID id) {
         productService.deleteProduct(id);

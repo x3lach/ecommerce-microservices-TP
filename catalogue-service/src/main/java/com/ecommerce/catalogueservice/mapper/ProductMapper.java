@@ -31,6 +31,7 @@ public class ProductMapper {
         }
         if (product.getImages() != null) {
             dto.setImageUrls(product.getImages().stream()
+                    .sorted((img1, img2) -> Integer.compare(img1.getSortOrder(), img2.getSortOrder()))
                     .map(ProductImage::getImageUrl)
                     .collect(Collectors.toList()));
         }

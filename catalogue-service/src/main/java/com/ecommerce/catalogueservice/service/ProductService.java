@@ -181,70 +181,94 @@ public class ProductService {
 
     @Transactional
     public ProductResponse updateProduct(UUID id, ProductRequest productDetails) {
-        Product existingProduct = getProductEntityById(id);
+        try {
+            Product existingProduct = getProductEntityById(id);
 
-        if (productDetails.getSku() != null && !productDetails.getSku().equals(existingProduct.getSku())) {
-            productRepository.findBySku(productDetails.getSku()).ifPresent(p -> {
-                throw new IllegalArgumentException("SKU " + p.getSku() + " already exists.");
-            });
-            existingProduct.setSku(productDetails.getSku());
-        }
-
-        if (productDetails.getName() != null) {
-            existingProduct.setName(productDetails.getName());
-        }
-        if (productDetails.getDescription() != null) {
-            existingProduct.setDescription(productDetails.getDescription());
-        }
-        if (productDetails.getPrice() != null) {
-            existingProduct.setPrice(productDetails.getPrice());
-        }
-        if (productDetails.getStockQuantity() != null) {
-            existingProduct.setStockQuantity(productDetails.getStockQuantity());
-        }
-        if (productDetails.getCondition() != null) {
-            existingProduct.setConditionState(productDetails.getCondition());
-        }
-        if (productDetails.getWeight() != null) existingProduct.setWeight(productDetails.getWeight());
-        if (productDetails.getPackageLength() != null) existingProduct.setPackageLength(productDetails.getPackageLength());
-        if (productDetails.getPackageWidth() != null) existingProduct.setPackageWidth(productDetails.getPackageWidth());
-        if (productDetails.getPackageHeight() != null) existingProduct.setPackageHeight(productDetails.getPackageHeight());
-
-        if (productDetails.getCategoryId() != null) {
-             Category category = categoryRepository.findById(productDetails.getCategoryId())
-                     .orElseThrow(() -> new RuntimeException("Category not found"));
-             existingProduct.setCategory(category);
-        }
-
-        if (productDetails.getBrandId() != null) {
-             Brand brand = brandRepository.findById(productDetails.getBrandId())
-                     .orElseThrow(() -> new RuntimeException("Brand not found"));
-             existingProduct.setBrand(brand);
-        }
-
-        // Handle shipping options update if needed (simplified: clear and re-add or just append? 
-        // For now, let's assume we replace if provided, or ignore if null. 
-        // Given complexity, let's just clear and add new if provided)
-        if (productDetails.getShippingOptions() != null) {
-            existingProduct.getShippingOptions().clear();
-            for (ShippingInfo shippingInfo : productDetails.getShippingOptions()) {
-                ShippingOption shippingOption = shippingOptionRepository.findByName(shippingInfo.getName())
-                        .orElseThrow(() -> new RuntimeException("Shipping option not found: " + shippingInfo.getName()));
-                ProductShipping productShipping = new ProductShipping();
-                productShipping.setProduct(existingProduct);
-                productShipping.setShippingOption(shippingOption);
-                productShipping.setPrice(shippingInfo.getPrice());
-                existingProduct.getShippingOptions().add(productShipping);
+            if (productDetails.getSku() != null && !productDetails.getSku().equals(existingProduct.getSku())) {
+                productRepository.findBySku(productDetails.getSku()).ifPresent(p -> {
+                    throw new IllegalArgumentException("SKU " + p.getSku() + " already exists.");
+                });
+                existingProduct.setSku(productDetails.getSku());
             }
+
+            if (productDetails.getName() != null) {
+                existingProduct.setName(productDetails.getName());
+            }
+            if (productDetails.getDescription() != null) {
+                existingProduct.setDescription(productDetails.getDescription());
+            }
+            if (productDetails.getPrice() != null) {
+                existingProduct.setPrice(productDetails.getPrice());
+            }
+            if (productDetails.getStockQuantity() != null) {
+                existingProduct.setStockQuantity(productDetails.getStockQuantity());
+            }
+            if (productDetails.getCondition() != null) {
+                existingProduct.setConditionState(productDetails.getCondition());
+            }
+            if (productDetails.getWeight() != null) existingProduct.setWeight(productDetails.getWeight());
+            if (productDetails.getPackageLength() != null) existingProduct.setPackageLength(productDetails.getPackageLength());
+            if (productDetails.getPackageWidth() != null) existingProduct.setPackageWidth(productDetails.getPackageWidth());
+            if (productDetails.getPackageHeight() != null) existingProduct.setPackageHeight(productDetails.getPackageHeight());
+
+            if (productDetails.getCategoryId() != null) {
+                 Category category = categoryRepository.findById(productDetails.getCategoryId())
+                         .orElseThrow(() -> new RuntimeException("Category not found with ID: " + productDetails.getCategoryId()));
+                 existingProduct.setCategory(category);
+            }
+
+            if (productDetails.getBrandId() != null) {
+                 Brand brand = brandRepository.findById(productDetails.getBrandId())
+                         .orElseThrow(() -> new RuntimeException("Brand not found with ID: " + productDetails.getBrandId()));
+                 existingProduct.setBrand(brand);
+            }
+
+            if (productDetails.getShippingOptions() != null) {
+                List<ShippingInfo> incomingOptions = productDetails.getShippingOptions();
+                List<ProductShipping> existingOptions = existingProduct.getShippingOptions();
+
+                // 1. Remove options not present in the incoming list
+                existingOptions.removeIf(existing -> 
+                    incomingOptions.stream().noneMatch(incoming -> 
+                        incoming.getName().equals(existing.getShippingOption().getName())
+                    )
+                );
+
+                // 2. Add or Update options
+                for (ShippingInfo incoming : incomingOptions) {
+                    ProductShipping existing = existingOptions.stream()
+                        .filter(e -> e.getShippingOption().getName().equals(incoming.getName()))
+                        .findFirst()
+                        .orElse(null);
+
+                    if (existing != null) {
+                        // Update existing
+                        existing.setPrice(incoming.getPrice());
+                    } else {
+                        // Add new
+                        ShippingOption shippingOption = shippingOptionRepository.findByName(incoming.getName())
+                                .orElseThrow(() -> new RuntimeException("Shipping option not found: " + incoming.getName()));
+                        
+                        ProductShipping newOption = new ProductShipping();
+                        newOption.setProduct(existingProduct);
+                        newOption.setShippingOption(shippingOption);
+                        newOption.setPrice(incoming.getPrice());
+                        existingOptions.add(newOption);
+                    }
+                }
+            }
+
+            existingProduct.setActive(productDetails.isActive());
+
+            Product updatedProduct = productRepository.save(existingProduct);
+
+            log.info("Product updated successfully: {}", updatedProduct.getId());
+
+            return productMapper.toDto(updatedProduct);
+        } catch (Exception e) {
+            log.error("Error updating product {}: {}", id, e.getMessage(), e);
+            throw e;
         }
-
-        existingProduct.setActive(productDetails.isActive());
-
-        Product updatedProduct = productRepository.save(existingProduct);
-
-        log.info("Product updated: {}", updatedProduct.getId());
-
-        return productMapper.toDto(updatedProduct);
     }
 
     @Transactional(readOnly = true)
@@ -252,6 +276,36 @@ public class ProductService {
         return productRepository.findBySellerId(sellerId).stream()
                 .map(productMapper::toDto)
                 .collect(Collectors.toList());
+    }
+
+    @Transactional
+    public void updateImageOrder(UUID productId, List<String> imageUrls) {
+        Product product = getProductEntityById(productId);
+        
+        List<ProductImage> currentImages = product.getImages();
+        
+        // Map to store current images by URL for easy access. 
+        // Note: Image URLs in DB might be relative or absolute, we need to match carefully.
+        // The frontend sends full URLs or relative? Usually we store relative.
+        // Let's assume the frontend sends what it has. We might need to normalize.
+        
+        // Strategy: Iterate through the provided ordered list. Find matching image in currentImages. Set sort order.
+        
+        for (int i = 0; i < imageUrls.size(); i++) {
+            String url = imageUrls.get(i);
+            // Simple matching logic: Ends with the stored URL or equals
+            // because frontend might prepend http://localhost:8081
+            
+            for (ProductImage img : currentImages) {
+                if (url.endsWith(img.getImageUrl()) || img.getImageUrl().endsWith(url)) {
+                    img.setSortOrder(i);
+                    break;
+                }
+            }
+        }
+        
+        productRepository.save(product);
+        log.info("Updated image order for product {}", productId);
     }
 
     @Transactional

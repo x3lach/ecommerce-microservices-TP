@@ -18,8 +18,11 @@ const MyItemsPage = () => {
     const [selectedCategory, setSelectedCategory] = useState('');
     const [brands, setBrands] = useState([]);
     const [selectedBrand, setSelectedBrand] = useState('');
-    const [images, setImages] = useState([]);
-    const [existingImages, setExistingImages] = useState([]); // State for existing images in edit mode
+    
+    // Unified Media State (Existing + New)
+    const [mediaItems, setMediaItems] = useState([]); 
+    // structure: { id: string, url: string, file?: File, isExisting: boolean }
+
     const [weight, setWeight] = useState('');
     const [length, setLength] = useState('');
     const [width, setWidth] = useState('');
@@ -32,6 +35,7 @@ const MyItemsPage = () => {
     const [activeTab, setActiveTab] = useState('addItem');
     const [myProducts, setMyProducts] = useState([]);
     const [editingProductId, setEditingProductId] = useState(null);
+    const [originalSku, setOriginalSku] = useState(null); // Store original SKU for editing
     const [searchTerm, setSearchTerm] = useState('');
 
     // Fetching data
@@ -134,34 +138,40 @@ const MyItemsPage = () => {
 
         // Set existing images
         if (product.imageUrls && product.imageUrls.length > 0) {
-            const formattedImages = product.imageUrls.map(url => 
-                url.startsWith('http') ? url : `http://localhost:8081${url}`
-            );
-            setExistingImages(formattedImages);
+            const formattedItems = product.imageUrls.map((url, index) => ({
+                id: `existing-${index}-${Date.now()}`,
+                url: url.startsWith('http') ? url : `http://localhost:8081${url}`,
+                isExisting: true
+            }));
+            setMediaItems(formattedItems);
         } else {
-            setExistingImages([]);
+            setMediaItems([]);
         }
 
-        setImages([]); // Clear new file uploads
+        setOriginalSku(product.sku); // Save original SKU
         // setActiveTab('addItem'); // Removed to stay in "Modifier my Item" tab
     };
 
     // Handlers
     const handleImageUpload = (e) => {
         const files = Array.from(e.target.files);
-        if (images.length + files.length > 8) {
+        if (mediaItems.length + files.length > 8) {
             alert("You can only upload a maximum of 8 images.");
             return;
         }
-        setImages(prevImages => [...prevImages, ...files]);
+        
+        const newItems = files.map((file, index) => ({
+            id: `new-${Date.now()}-${index}`,
+            url: URL.createObjectURL(file),
+            file: file,
+            isExisting: false
+        }));
+
+        setMediaItems(prev => [...prev, ...newItems]);
     };
 
-    const removeImage = (index) => {
-        setImages(prevImages => prevImages.filter((_, i) => i !== index));
-    };
-
-    const removeExistingImage = (index) => {
-        setExistingImages(prev => prev.filter((_, i) => i !== index));
+    const handleRemoveMedia = (index) => {
+        setMediaItems(prev => prev.filter((_, i) => i !== index));
     };
 
     // Drag and drop handlers for reordering images
@@ -184,11 +194,11 @@ const MyItemsPage = () => {
             return;
         }
 
-        const newImages = [...images];
-        const draggedImage = newImages[draggedIndex];
-        newImages.splice(draggedIndex, 1);
-        newImages.splice(dropIndex, 0, draggedImage);
-        setImages(newImages);
+        const newMediaItems = [...mediaItems];
+        const draggedItem = newMediaItems[draggedIndex];
+        newMediaItems.splice(draggedIndex, 1);
+        newMediaItems.splice(dropIndex, 0, draggedItem);
+        setMediaItems(newMediaItems);
         setDraggedIndex(null);
     };
 
@@ -197,15 +207,19 @@ const MyItemsPage = () => {
     };
 
     const handleSubmit = async () => {
-        if (!title || !description || !price || !selectedCategory || (images.length === 0 && existingImages.length === 0)) {
+        if (!title || !description || !price || !selectedCategory || mediaItems.length === 0) {
             alert("Please fill out all required fields and upload at least one image.");
             return;
         }
 
+
         const token = localStorage.getItem('token');
 
-        // Auto-generate SKU from title
-        const generatedSku = `SKU-${title.replace(/\s+/g, '-').toUpperCase()}`;
+        // Auto-generate SKU from title (only for new items)
+        // If editing, use the original SKU to avoid collisions/changes
+        const skuToUse = editingProductId && originalSku 
+            ? originalSku 
+            : `SKU-${title.replace(/\s+/g, '-').toUpperCase()}`;
 
         const shippingOptions = selectedShipping.map(name => {
             let priceValue;
@@ -225,7 +239,7 @@ const MyItemsPage = () => {
             description,
             price: parseFloat(price),
             stockQuantity: parseInt(quantity, 10),
-            sku: generatedSku,
+            sku: skuToUse,
             categoryId: selectedCategory,
             brandId: selectedBrand || null,
             isActive: true,
@@ -257,17 +271,24 @@ const MyItemsPage = () => {
 
             if (!productResponse.ok) {
                 const errorData = await productResponse.json();
-                throw new Error(errorData.message || 'Failed to save product');
+                console.error("Server returned error:", errorData);
+                throw new Error(errorData.message || errorData.error || 'Failed to save product');
             }
 
             const savedProduct = await productResponse.json();
             const productId = savedProduct.id;
 
+            // Filter for new files to upload
+            const newFilesToUpload = mediaItems
+                .filter(item => !item.isExisting && item.file)
+                .map(item => item.file);
+
             // Only upload images if there are new ones
-            if (images.length > 0) {
+            let updatedProductData = savedProduct;
+            if (newFilesToUpload.length > 0) {
                 const formData = new FormData();
-                images.forEach(image => {
-                    formData.append('files', image);
+                newFilesToUpload.forEach(file => {
+                    formData.append('files', file);
                 });
 
                 const imageResponse = await fetch(`http://localhost:8081/api/v1/products/${productId}/images`, {
@@ -281,6 +302,53 @@ const MyItemsPage = () => {
                 if (!imageResponse.ok) {
                     throw new Error('Failed to upload images');
                 }
+                
+                updatedProductData = await imageResponse.json();
+            }
+            
+            // Backend Reorder Logic
+            // 1. Identify "New" URLs in the updated product data (those that are not in the original "existing" list)
+            // Or simpler: The server appends new images. 
+            // The `newFilesToUpload` were sent in order. The server response `updatedProductData.imageUrls` should have them appended in that order.
+            
+            // Extract the new URLs from the server response
+            // We know how many we uploaded: `newFilesToUpload.length`
+            // They should be the last N items in `updatedProductData.imageUrls`
+            
+            const allServerUrls = updatedProductData.imageUrls || [];
+            const numberOfNewFiles = newFilesToUpload.length;
+            const newServerUrls = allServerUrls.slice(-numberOfNewFiles);
+            
+            // 2. Map our local `mediaItems` to these URLs
+            let newUrlIndex = 0;
+            const finalOrderedUrls = mediaItems.map(item => {
+                if (item.isExisting) {
+                    // It's an existing URL.
+                    // IMPORTANT: The server returns full URLs or relative? 
+                    // Our `item.url` might have `http://localhost...` prepended if we did that in `handleEdit`.
+                    // The server expects what matches the DB. 
+                    // Let's strip the prefix if it exists, or just send what we have and let backend handle "endsWith".
+                    // The backend `updateImageOrder` logic uses `endsWith`, so full URL is fine.
+                    return item.url;
+                } else {
+                    // It's a new file. Assign the next available "New Server URL".
+                    if (newUrlIndex < newServerUrls.length) {
+                        return newServerUrls[newUrlIndex++];
+                    }
+                    return null; // Should not happen
+                }
+            }).filter(url => url !== null); // Remove nulls just in case
+
+            // 3. Send reorder request
+            if (finalOrderedUrls.length > 0) {
+                 await fetch(`http://localhost:8081/api/v1/products/${productId}/images/order`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify(finalOrderedUrls)
+                });
             }
 
             alert(editingProductId ? 'Product updated successfully!' : 'Product listed successfully!');
@@ -295,8 +363,7 @@ const MyItemsPage = () => {
                 setDescription('');
                 setPrice('');
                 setQuantity(1);
-                setImages([]);
-                setExistingImages([]);
+                setMediaItems([]);
             } else {
                 navigate(`/`);
             }
@@ -347,8 +414,7 @@ const MyItemsPage = () => {
                         setDescription('');
                         setPrice('');
                         setQuantity(1);
-                        setImages([]);
-                        setExistingImages([]);
+                        setMediaItems([]);
                     }}
                     className={`tab-button ${activeTab === 'addItem' ? 'active' : ''}`}
                 >
@@ -424,7 +490,7 @@ const MyItemsPage = () => {
                             style={{ display: 'none' }}
                         />
 
-                        {images.length === 0 && existingImages.length === 0 ? (
+                        {mediaItems.length === 0 ? (
                             /* Empty state - Large upload area */
                             <label htmlFor="imageUpload" className="photo-upload-empty">
                                 <div className="upload-empty-content">
@@ -446,11 +512,19 @@ const MyItemsPage = () => {
                         ) : (
                             /* Photos added state */
                             <div className="photo-upload-grid">
-                                {/* Main photo display - Logic: Prefer first existing image, then first new image */}
+                                {/* Main photo display - Always the first item in mediaItems */}
                                 <div className="main-photo-container">
-                                    <div className="main-photo-wrapper">
+                                    <div 
+                                        className="main-photo-wrapper"
+                                        draggable
+                                        onDragStart={(e) => handleDragStart(e, 0)}
+                                        onDragOver={(e) => handleDragOver(e, 0)}
+                                        onDrop={(e) => handleDrop(e, 0)}
+                                        onDragEnd={handleDragEnd}
+                                        style={{ opacity: draggedIndex === 0 ? 0.5 : 1, cursor: 'move' }}
+                                    >
                                         <img
-                                            src={existingImages.length > 0 ? existingImages[0] : URL.createObjectURL(images[0])}
+                                            src={mediaItems[0].url}
                                             alt="Main product"
                                             className="main-photo-img"
                                         />
@@ -465,8 +539,7 @@ const MyItemsPage = () => {
                                             onClick={(e) => {
                                                 e.preventDefault();
                                                 e.stopPropagation();
-                                                if (existingImages.length > 0) removeExistingImage(0);
-                                                else removeImage(0);
+                                                handleRemoveMedia(0);
                                             }}
                                             type="button"
                                         >
@@ -481,8 +554,8 @@ const MyItemsPage = () => {
                                 {/* Additional photos grid */}
                                 <div className="additional-photos">
                                     <div className="additional-photos-header">
-                                        <h4 className="additional-photos-title">Additional Photos ({existingImages.length + images.length - 1}/7)</h4>
-                                        {existingImages.length + images.length < 8 && (
+                                        <h4 className="additional-photos-title">Additional Photos ({mediaItems.length - 1}/7)</h4>
+                                        {mediaItems.length < 8 && (
                                             <label htmlFor="imageUpload" className="add-more-btn">
                                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                                     <line x1="12" y1="5" x2="12" y2="19"></line>
@@ -494,50 +567,38 @@ const MyItemsPage = () => {
                                     </div>
 
                                     <div className="photos-thumbnail-grid">
-                                        {/* Render remaining Existing Images */}
-                                        {existingImages.slice(1).map((imgUrl, index) => (
-                                            <div key={`existing-${index}`} className="photo-thumbnail">
-                                                <img src={imgUrl} alt={`Product existing ${index + 2}`} className="photo-thumbnail-img" />
-                                                <div className="photo-thumbnail-number">{index + 2}</div>
+                                        {/* Render remaining items */}
+                                        {mediaItems.slice(1).map((item, index) => {
+                                            const realIndex = index + 1;
+                                            return (
+                                            <div 
+                                                key={item.id} 
+                                                className="photo-thumbnail"
+                                                draggable
+                                                onDragStart={(e) => handleDragStart(e, realIndex)}
+                                                onDragOver={(e) => handleDragOver(e, realIndex)}
+                                                onDrop={(e) => handleDrop(e, realIndex)}
+                                                onDragEnd={handleDragEnd}
+                                                style={{ opacity: draggedIndex === realIndex ? 0.5 : 1, cursor: 'move' }}
+                                            >
+                                                <img src={item.url} alt={`Product ${realIndex}`} className="photo-thumbnail-img" />
+                                                <div className="photo-thumbnail-number">{realIndex + 1}</div>
                                                 <button
                                                     className="photo-thumbnail-remove"
                                                     onClick={(e) => {
                                                         e.preventDefault();
                                                         e.stopPropagation();
-                                                        removeExistingImage(index + 1);
+                                                        handleRemoveMedia(realIndex);
                                                     }}
                                                     type="button"
                                                 >
                                                     ✕
                                                 </button>
                                             </div>
-                                        ))}
-
-                                        {/* Render remaining New Images */}
-                                        {/* If existingImages has items, render all new images. If existingImages is empty, skip the first new image (main) */}
-                                        {(existingImages.length > 0 ? images : images.slice(1)).map((image, index) => (
-                                            <div key={`new-${index}`} className="photo-thumbnail">
-                                                <img src={URL.createObjectURL(image)} alt={`Product new ${index}`} className="photo-thumbnail-img" />
-                                                <div className="photo-thumbnail-number">
-                                                    {existingImages.length > 0 ? existingImages.length + index + 1 : index + 2}
-                                                </div>
-                                                <button
-                                                    className="photo-thumbnail-remove"
-                                                    onClick={(e) => {
-                                                        e.preventDefault();
-                                                        e.stopPropagation();
-                                                        if (existingImages.length > 0) removeImage(index);
-                                                        else removeImage(index + 1);
-                                                    }}
-                                                    type="button"
-                                                >
-                                                    ✕
-                                                </button>
-                                            </div>
-                                        ))}
+                                        )})}
 
                                         {/* Add more placeholder */}
-                                        {existingImages.length + images.length < 8 && (
+                                        {mediaItems.length < 8 && (
                                             <label htmlFor="imageUpload" className="photo-thumbnail photo-thumbnail-add">
                                                 <div className="photo-add-icon">
                                                     <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -864,8 +925,7 @@ const MyItemsPage = () => {
                                         setDescription('');
                                         setPrice('');
                                         setQuantity(1);
-                                        setImages([]);
-                                        setExistingImages([]);
+                                        setMediaItems([]);
                                     }}
                                 >
                                     Cancel
@@ -883,15 +943,9 @@ const MyItemsPage = () => {
                     <div className="preview-card">
                         <h3 className="preview-title">Preview</h3>
                         <div className="preview-image">
-                            {existingImages.length > 0 ? (
+                            {mediaItems.length > 0 ? (
                                 <img
-                                    src={existingImages[0]}
-                                    alt="preview"
-                                    style={{width: '100%', height: '100%', objectFit: 'cover', borderRadius: '16px'}}
-                                />
-                            ) : images.length > 0 ? (
-                                <img
-                                    src={URL.createObjectURL(images[0])}
+                                    src={mediaItems[0].url}
                                     alt="preview"
                                     style={{width: '100%', height: '100%', objectFit: 'cover', borderRadius: '16px'}}
                                 />

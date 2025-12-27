@@ -139,19 +139,31 @@ const MainPage = () => {
                             <div className="price-input-wrapper">
                                 <input 
                                     type="number" 
+                                    min="0"
                                     className="filter-input price-input" 
                                     placeholder="Min" 
                                     value={minPrice}
-                                    onChange={(e) => setMinPrice(e.target.value)}
+                                    onChange={(e) => {
+                                        const val = e.target.value;
+                                        if (val === '' || parseFloat(val) >= 0) {
+                                            setMinPrice(val);
+                                        }
+                                    }}
                                 />
                             </div>
                             <div className="price-input-wrapper">
                                 <input 
                                     type="number" 
+                                    min="0"
                                     className="filter-input price-input" 
                                     placeholder="Max" 
                                     value={maxPrice}
-                                    onChange={(e) => setMaxPrice(e.target.value)}
+                                    onChange={(e) => {
+                                        const val = e.target.value;
+                                        if (val === '' || parseFloat(val) >= 0) {
+                                            setMaxPrice(val);
+                                        }
+                                    }}
                                 />
                             </div>
                         </div>

@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import './CheckoutPage.css';
 import logo from '/logo.png';
 import AuthContext from '../context/AuthContext';
+import CartContext from '../context/CartContext';
 
 const CheckoutPage = () => {
     const navigate = useNavigate();
